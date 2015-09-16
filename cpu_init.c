@@ -180,7 +180,6 @@ void  Initial(void)
   GODONE=0;	    // AD conversion status
   ADON=0;	    // AD on status
 
-
 // ADCON1 Register....(not use)
   ADFM=0;	    // AD result format
   ADCS2=0;	    // AD conv. clock select bits
@@ -188,7 +187,6 @@ void  Initial(void)
   PCFG2=1;
   PCFG1=1;
   PCFG0=0;
-
 
 // CCP1CON Register......(not use)
   DC1B1=0;	    // Duty Cycle Bits 1 & 0
