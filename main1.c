@@ -176,6 +176,8 @@ unsigned       char        Message2[17];
 
 unsigned       int        Mes;
 
+unsigned int indayHighTimer=0;
+
 
 /*******************************************************
    manual play and record
@@ -483,17 +485,17 @@ unsigned int  NewDisplayLadder(void)
 
 #define _RUNLED		LATB4	// Run Led
 
-#define _SET_A1		LATA0	// 주간 셋팅 볼륨, AN0
-#define _SET_A2		LATA1	// 중간 셋팅 볼륨, AN1
-#define _SET_A3		LATA2	// 야간 셋팅 볼륨, AN2
+#define _SET_A1		RA0	// 주간 셋팅 볼륨, AN0
+#define _SET_A2		RA1	// 중간 셋팅 볼륨, AN1
+#define _SET_A3		RA2	// 야간 셋팅 볼륨, AN2
 
-#define _IN_DAY		LATB0	// 주간, 60Hz: On / High: Off
-#define _IN_NIGHT	LATB1	// 야간
-#define _IN_BLINK	LATB2	
-#define _SAVE		LATB3	// 셋팅 Switch
+#define _IN_DAY		RB0	// 주간, 60Hz: On / High: Off
+#define _IN_NIGHT	RB1	// 야간
+#define _IN_BLINK	RB2	
+#define _SAVE		RB3	// 셋팅 Switch
 
-#define _A_IN		LATA3	// AN3
-#define _V_IN		LATA5	// AN4
+#define _A_IN		RA3	// AN3
+#define _V_IN		RA5	// AN4
 
 #define _LAMP_ON	LATC0	// 등 On, Off  
 #define	_PWM		LATC2		
@@ -519,11 +521,46 @@ unsigned int  NewDisplayLadder(void)
 
 InitPort(void)
 {
-	_RUNLED = HIGH;
-	_RUNLED_TRIS = TRIS_OUTPUT;
+	_RUNLED 		= HIGH;
+	_RUNLED_TRIS 	= TRIS_OUTPUT;
 	
-	_SET_A1 = HIGH;
-	_SET_A1_TRIS = TRIS_INPUT;
+	_SET_A1 		= HIGH;
+	_SET_A1_TRIS 	= TRIS_INPUT;
+	_SET_A2 		= HIGH;
+	_SET_A2_TRIS 	= TRIS_INPUT;
+	_SET_A3			= HIGH;
+	_SET_A3_TRIS 	= TRIS_INPUT;
+	_A_IN 			= HIGH;
+	_A_IN_TRIS 		= TRIS_INPUT;
+	_V_IN			= HIGH;
+	_V_IN_TRIS 		= TRIS_INPUT;
+
+	_IN_DAY			= HIGH;
+	_IN_DAY_TRIS	= TRIS_INPUT; 
+	_IN_NIGHT		= HIGH;
+	_IN_NIGHT_TRIS	= TRIS_INPUT; 
+	_IN_BLINK		= HIGH;
+	_IN_BLINK_TRIS	= TRIS_INPUT; 
+	_SAVE			= HIGH;
+	_SAVE_TRIS		= TRIS_INPUT;
+
+	_LAMP_ON		= HIGH;
+	_LAMP_ON_TRIS	= TRIS_OUTPUT;
+	_PWM			= HIGH;
+	_PWM_TRIS		= TRIS_OUTPUT;
+
+	_RUNLED			= LOW;
+	_SET_A1			= LOW;
+	_SET_A2			= LOW;
+	_SET_A3			= LOW;
+	_A_IN			= LOW;
+	_V_IN			= LOW; 
+	_IN_DAY			= LOW;
+	_IN_NIGHT		= LOW; 
+	_IN_BLINK		= LOW;
+	_SAVE			= LOW;
+	_LAMP_ON		= LOW;
+	_PWM			= LOW;
 }
 
 
@@ -587,28 +624,60 @@ unsigned    char    AdSel;
 unsigned long AdSumValue=0;
 // 5000이면 5V이다.
 unsigned int SetA1_Volt=0; // SER A1 Voltage, AN0
-unsigned int InVoltage=0; // A_IN Voltage, AN3
+unsigned int SetA2_Volt=0; // SER A2 Voltage, AN1
+unsigned int SetA3_Volt=0; // SER A3 Voltage, AN2
+unsigned int A_IN_Volt=0; // A_IN Voltage, AN3
+unsigned int V_IN_Volt=0; // V_IN Voltage, AN4
+
 
 void SaveADtoEachChannel(void)
 {    
 	switch(AdSel){
-	case 0:
+	case 0: // AN0
 		//if(bSetSwPushOK){
 			SetA1_Volt = AdAvrValue; //204->46,
 		//}		
 		CHS3=0;
 		CHS2=0;
 		CHS1=0;
-		CHS0=0;
-		AdSel=0;
+		CHS0=1;
+		AdSel=1;
 		break;
-	case 1:
-		InVoltage = AdAvrValue; //204->46,
+	case 1: // AN1
+		//if(bSetSwPushOK){
+			SetA2_Volt = AdAvrValue; //204->46,
+		//}		
 		CHS3=0;
 		CHS2=0;
 		CHS1=1;
 		CHS0=0;
 		AdSel=2;
+		break;
+	case 2: // AN2
+		//if(bSetSwPushOK){
+			SetA3_Volt = AdAvrValue; //204->46,
+		//}		
+		CHS3=0;
+		CHS2=0;
+		CHS1=1;
+		CHS0=1;
+		AdSel=3;
+		break;
+	case 3: // AN3
+		A_IN_Volt = AdAvrValue; //204->46,
+		CHS3=0;
+		CHS2=1;
+		CHS1=0;
+		CHS0=0;
+		AdSel=4;
+		break;
+	case 4: // AN4
+		V_IN_Volt = AdAvrValue; //204->46,
+		CHS3=0;
+		CHS2=0;
+		CHS1=0;
+		CHS0=0;
+		AdSel=0;
 		break;		
 	default:
 		CHS3=0;
@@ -660,6 +729,33 @@ void	CalcuAd(void)
 
 
 
+unsigned char 	PERIOD;
+unsigned int 	DutyCycle;
+#define DUTI_MAX 0x3ff // 1023
+void InitPwm(void)
+{	
+	unsigned char T2PreScale; //Timer2 Clock Prescale Select bits
+	
+	TMR2IE = FALSE;
+	TMR2IF = FALSE;
+	CCP1CON = 0x0C;	/* select PWM mode */	
+ 
+	//PERIOD=124;
+	PERIOD = DUTI_MAX;
+	PR2 = PERIOD;					// update the PWM period 주기 레지스터 
+	
+	T2PreScale = 0; 
+	T2CON = (0x04 + T2PreScale);	
+}
+
+void UpdatePwmDuty(void)
+{
+	DC1B0 = (bit)DutyCycle;		//update the PWM duty cycle 
+	DC1B1 = (bit)(DutyCycle>>1);
+	CCPR1L = (DutyCycle>>2);	//13.04.30
+}
+
+bit bLampOn;
 
 void main(void)
 {	
@@ -668,6 +764,7 @@ void main(void)
 	Timer0Init();
 	InitPort();
 	InitAD();
+	InitPwm();
 	ei();
 
 	GODONE = TRUE;	// A/D Conversion Status bit
@@ -679,18 +776,17 @@ void main(void)
 	while(1){
 		CLRWDT();
 
-		CalcuAd(); // AD 값을 읽는다.
+		bLampOn = _LAMP_ON = 1;
 
-		if(TSB.bAdSave){
-			TSB.bAdSave = FALSE;
-			if(SetA1_Volt >= 2000)
-				_RUNLED = LOW; // Off
-			else
-				_RUNLED = HIGH; // On
+		if(bLampOn){ // high
+			_RUNLED = LOW; // off	
+			
+		}else{
+			_RUNLED = HIGH;	// on
 		}
 
-
-
+		DutyCycle = (DUTI_MAX /5);
+		UpdatePwmDuty();
 	}
 }
 
@@ -703,12 +799,9 @@ void interrupt isr(void)
 	if( TMR0IF ){
         TMR0IF = 0 ;
         TMR0L=MSEC_L;
-        TMR0H=MSEC_H;    
-		SerialTime++;
-		LcdTimer++;           
-		if(Charter<150)   Charter++;
-			
-		main_timer++;
+        TMR0H=MSEC_H;
+
+		if(indayHighTimer<1000) indayHighTimer++;
 	}
 
 	if(ADIntFlag && ADIE){
