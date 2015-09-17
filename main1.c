@@ -644,7 +644,7 @@ void	CalcuAd(void)
 			CLRWDT();
 			
 			tmpad = AdSumValue / AdCnt;
-			tmpad = (tmpad * 1000) / 202; 	//204		
+			tmpad = (tmpad * 1000) / 208; 	//204		
 			AdAvrValue = (unsigned int)tmpad;
 			SaveADtoEachChannel();
 
@@ -683,10 +683,10 @@ void main(void)
 
 		if(TSB.bAdSave){
 			TSB.bAdSave = FALSE;
-			if(SetA1_Volt > 2500)
-				_RUNLED = HIGH; // Off
+			if(SetA1_Volt >= 2000)
+				_RUNLED = LOW; // Off
 			else
-				_RUNLED = LOW; // On
+				_RUNLED = HIGH; // On
 		}
 
 
