@@ -621,7 +621,7 @@ void  InitAD(void)
 }
 
 unsigned    char    AdSel;
-unsigned long AdSumValue=0;
+unsigned long int AdSumValue=0;
 // 5000이면 5V이다.
 unsigned int SetA1_Volt=0; // SER A1 Voltage, AN0
 unsigned int SetA2_Volt=0; // SER A2 Voltage, AN1
@@ -692,7 +692,7 @@ void SaveADtoEachChannel(void)
 
 void	CalcuAd(void)
 {
-	unsigned long	tmpad;
+	unsigned long int tmpad;
 	unsigned int 	itmpad;
 
 	if(TSB.bAdInterrupt){		
@@ -705,7 +705,7 @@ void	CalcuAd(void)
 		itmpad = (itmpad & 0x00ff);	
 		AdCurValue = (AdCurValue | itmpad);
 
-		AdSumValue = AdSumValue + (unsigned long)AdCurValue;
+		AdSumValue = AdSumValue + (unsigned long int)AdCurValue;
 		AdCnt++;
 
 		if(AdCnt >= 50)
@@ -713,7 +713,7 @@ void	CalcuAd(void)
 			CLRWDT();
 			
 			tmpad = AdSumValue / AdCnt;
-			tmpad = (tmpad * 1000) / 208; 	//204		
+			tmpad = (tmpad * 1000) / 192; 	//204		
 			AdAvrValue = (unsigned int)tmpad;
 			SaveADtoEachChannel();
 
@@ -756,33 +756,58 @@ void UpdatePwmDuty(void)
 }
 
 
-volatile const unsigned char  SavedDutyCycle;
-far unsigned char * source_LedBuf = (far unsigned char *)&DutyCycle; 
-far unsigned char * dest_LedBuf = (far unsigned char *)&SavedDutyCycle;
 
 
-volatile const unsigned char  SetedA1_VoltBuf[2];
-void WriteSetVolt_Duty(void)
+#define WRSIZE	8	
+volatile const unsigned char  WriteBuf[WRSIZE];
+unsigned int  SavedDutyCycle;
+unsigned int  SavedSetA1_Volt;
+unsigned int  SavedSetA2_Volt;
+unsigned int  SavedSetA3_Volt;
+void WriteVal(unsigned int Src0, unsigned int Src1, 
+				   unsigned int Src2, unsigned int Src3, unsigned char* DestBuf)
 {	
-	unsigned char setBuf[2];
-	far unsigned char * SrcSetA1_Volt = (far unsigned char *)&setBuf; 
-	far unsigned char * DestSetedA1_Volt = (far unsigned char *)&SetedA1_VoltBuf;
+	unsigned char SrcBuf[WRSIZE];
 	
-	setBuf[0] = SetA1_Volt;
-	setBuf[1] = SetA1_Volt >> 8;	
-	flash_write(SrcSetA1_Volt, 2, DestSetedA1_Volt);	
+	SrcBuf[0] = (unsigned char)Src0;
+	SrcBuf[1] = (unsigned char)(Src0 >> 8);	
+	SrcBuf[2] = (unsigned char)Src1;
+	SrcBuf[3] = (unsigned char)(Src1 >> 8);	
+	SrcBuf[4] = (unsigned char)Src2;
+	SrcBuf[5] = (unsigned char)(Src2 >> 8);	
+	SrcBuf[6] = (unsigned char)Src3;
+	SrcBuf[7] = (unsigned char)(Src3 >> 8);	
+	
+	flash_write((far unsigned char *)SrcBuf, WRSIZE, (far unsigned char *)DestBuf);	
 }
 
-unsigned int  SetedA1_Volt;
-void ReadSettingPWM(void)
+ReadVal(void)
 {
 	unsigned char temp;
 	
-	temp = SetedA1_VoltBuf[1];
-	SetedA1_Volt = (unsigned int)temp;
-	SetedA1_Volt = SetedA1_Volt << 8;
-	temp = SetedA1_VoltBuf[0];
-	SetedA1_Volt = SetedA1_Volt | (unsigned int)temp;	
+	temp = WriteBuf[1];
+	SavedDutyCycle = (unsigned int)temp;
+	SavedDutyCycle = SavedDutyCycle << 8;
+	temp = WriteBuf[0];
+	SavedDutyCycle = SavedDutyCycle | ((unsigned int)temp & 0x00ff);
+
+	temp = WriteBuf[3];
+	SavedSetA1_Volt = (unsigned int)temp;
+	SavedSetA1_Volt = SavedSetA1_Volt << 8;
+	temp = WriteBuf[2];
+	SavedSetA1_Volt = SavedSetA1_Volt | ((unsigned int)temp & 0x00ff);
+
+	temp = WriteBuf[5];
+	SavedSetA2_Volt = (unsigned int)temp;
+	SavedSetA2_Volt = SavedSetA2_Volt << 8;
+	temp = WriteBuf[4];
+	SavedSetA2_Volt = SavedSetA2_Volt | ((unsigned int)temp & 0x00ff);
+
+	temp = WriteBuf[7];
+	SavedSetA3_Volt = (unsigned int)temp;
+	SavedSetA3_Volt = SavedSetA3_Volt << 8;
+	temp = WriteBuf[6];
+	SavedSetA3_Volt = SavedSetA3_Volt | ((unsigned int)temp & 0x00ff);
 }
 
 #define SETSW_PUSH		0 // 스위치 눌렀을 때가 0 값이다.
@@ -822,7 +847,7 @@ void main(void)
 	TMR0IE = TRUE;
 	SWDTEN = TRUE;  // Software Controlled Watchdog Timer Enable bit / 1 = Watchdog Timer is on
 
-	ReadSettingPWM();
+	ReadVal();
 
 	AdSel=0;
 	
@@ -833,17 +858,19 @@ void main(void)
 		CLRWDT();
 
 		if(IsSetSw_UpEdge()){
+			WriteVal(DutyCycle, SetA1_Volt, SetA2_Volt, SetA3_Volt, WriteBuf);
 			bSetSw_UpEdge = FALSE;
-			WriteSetVolt_Duty();
+			
 		}		
 
 		CalcuAd(); // AD 값을 읽는다.
 		
-		if(SetedA1_Volt > 2500){
+		if(SavedSetA1_Volt > 2500){
 			_RUNLED = LOW; // on
 		}else{
 			_RUNLED = HIGH;	// off
-		}		
+		}
+
 
 		_LAMP_ON = TRUE;
 		DutyCycle = (DUTI_MAX /5);
