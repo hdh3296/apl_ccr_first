@@ -492,7 +492,7 @@ unsigned int  NewDisplayLadder(void)
 #define _IN_DAY		RB0	// 주간, 60Hz: On / High: Off
 #define _IN_NIGHT	RB1	// 야간
 #define _IN_BLINK	RB2	
-#define _SAVE		RB3	// 셋팅 Switch
+#define _SAVE_SW	RB3	// 셋팅 Switch
 
 #define _A_IN		RA3	// AN3
 #define _V_IN		RA5	// AN4
@@ -510,7 +510,7 @@ unsigned int  NewDisplayLadder(void)
 #define _IN_DAY_TRIS		TRISB0	// in
 #define _IN_NIGHT_TRIS		TRISB1	// in
 #define _IN_BLINK_TRIS		TRISB2	// in
-#define _SAVE_TRIS			TRISB3	// in
+#define _SAVE_SW_TRIS			TRISB3	// in
 
 #define _A_IN_TRIS		TRISA3	// in		
 #define _V_IN_TRIS		TRISA5	// in
@@ -541,8 +541,8 @@ InitPort(void)
 	_IN_NIGHT_TRIS	= TRIS_INPUT; 
 	_IN_BLINK		= HIGH;
 	_IN_BLINK_TRIS	= TRIS_INPUT; 
-	_SAVE			= HIGH;
-	_SAVE_TRIS		= TRIS_INPUT;
+	_SAVE_SW			= HIGH;
+	_SAVE_SW_TRIS		= TRIS_INPUT;
 
 	_LAMP_ON		= HIGH;
 	_LAMP_ON_TRIS	= TRIS_OUTPUT;
@@ -558,7 +558,7 @@ InitPort(void)
 	_IN_DAY			= LOW;
 	_IN_NIGHT		= LOW; 
 	_IN_BLINK		= LOW;
-	_SAVE			= LOW;
+	_SAVE_SW			= LOW;
 	_LAMP_ON		= LOW;
 	_PWM			= LOW;
 }
@@ -755,7 +755,58 @@ void UpdatePwmDuty(void)
 	CCPR1L = (DutyCycle>>2);	//13.04.30
 }
 
-bit bLampOn;
+
+volatile const unsigned char  SavedDutyCycle;
+far unsigned char * source_LedBuf = (far unsigned char *)&DutyCycle; 
+far unsigned char * dest_LedBuf = (far unsigned char *)&SavedDutyCycle;
+
+
+volatile const unsigned char  SetedA1_VoltBuf[2];
+void WriteSetVolt_Duty(void)
+{	
+	unsigned char setBuf[2];
+	far unsigned char * SrcSetA1_Volt = (far unsigned char *)&setBuf; 
+	far unsigned char * DestSetedA1_Volt = (far unsigned char *)&SetedA1_VoltBuf;
+	
+	setBuf[0] = SetA1_Volt;
+	setBuf[1] = SetA1_Volt >> 8;	
+	flash_write(SrcSetA1_Volt, 2, DestSetedA1_Volt);	
+}
+
+unsigned int  SetedA1_Volt;
+void ReadSettingPWM(void)
+{
+	unsigned char temp;
+	
+	temp = SetedA1_VoltBuf[1];
+	SetedA1_Volt = (unsigned int)temp;
+	SetedA1_Volt = SetedA1_Volt << 8;
+	temp = SetedA1_VoltBuf[0];
+	SetedA1_Volt = SetedA1_Volt | (unsigned int)temp;	
+}
+
+#define SETSW_PUSH		0 // 스위치 눌렀을 때가 0 값이다.
+unsigned    char    SetSwCharterTimer=0;
+bit bSetSwPushOK;
+bit bSetSw_UpEdge;
+bit IsSetSw_UpEdge(void)
+{	
+	if(_SAVE_SW == SETSW_PUSH){ // 스위치를 눌렀을 때 !!!
+		if(SetSwCharterTimer > 100){
+			bSetSwPushOK = TRUE;
+		}
+	}else{ // 스위치를 뗐을 때 !
+		SetSwCharterTimer = 0;
+		if(bSetSwPushOK){
+			bSetSw_UpEdge = TRUE;
+		}
+		bSetSwPushOK = FALSE;
+	}
+
+	return bSetSw_UpEdge;
+}
+
+
 
 void main(void)
 {	
@@ -771,22 +822,33 @@ void main(void)
 	TMR0IE = TRUE;
 	SWDTEN = TRUE;  // Software Controlled Watchdog Timer Enable bit / 1 = Watchdog Timer is on
 
+	ReadSettingPWM();
+
 	AdSel=0;
+	
+	bSetSw_UpEdge = FALSE;
+	bSetSwPushOK = FALSE;
 
 	while(1){
 		CLRWDT();
 
-		bLampOn = _LAMP_ON = 1;
+		if(IsSetSw_UpEdge()){
+			bSetSw_UpEdge = FALSE;
+			WriteSetVolt_Duty();
+		}		
 
-		if(bLampOn){ // high
-			_RUNLED = LOW; // off	
-			
+		CalcuAd(); // AD 값을 읽는다.
+		
+		if(SetedA1_Volt > 2500){
+			_RUNLED = LOW; // on
 		}else{
-			_RUNLED = HIGH;	// on
-		}
+			_RUNLED = HIGH;	// off
+		}		
 
+		_LAMP_ON = TRUE;
 		DutyCycle = (DUTI_MAX /5);
 		UpdatePwmDuty();
+		
 	}
 }
 
@@ -800,6 +862,8 @@ void interrupt isr(void)
         TMR0IF = 0 ;
         TMR0L=MSEC_L;
         TMR0H=MSEC_H;
+
+		if(SetSwCharterTimer < 250)	SetSwCharterTimer++;
 
 		if(indayHighTimer<1000) indayHighTimer++;
 	}
