@@ -176,8 +176,22 @@ unsigned       char        Message2[17];
 
 unsigned       int        Mes;
 
-unsigned int indayHighTimer=0;
 
+////////////////////////////////
+unsigned int indayHighTimer=0;
+unsigned int AnalogValidTime=0;
+unsigned int StartTimer;
+bit bFlashing;
+unsigned int InBlinkTimer=0;
+bit bInBlinkLED;
+
+#define SETSW_PUSH		0 // 스위치 눌렀을 때가 0 값이다.
+unsigned    char    SetSwCharterTimer=0;
+bit bSetSwPushOK;
+bit bSetSw_UpEdge;
+
+#define ON	1
+#define	OFF	0
 
 /*******************************************************
    manual play and record
@@ -634,9 +648,9 @@ void SaveADtoEachChannel(void)
 {    
 	switch(AdSel){
 	case 0: // AN0
-		//if(bSetSwPushOK){
+		if(bSetSwPushOK){
 			SetA1_Volt = AdAvrValue; //204->46,
-		//}		
+		}		
 		CHS3=0;
 		CHS2=0;
 		CHS1=0;
@@ -644,9 +658,9 @@ void SaveADtoEachChannel(void)
 		AdSel=1;
 		break;
 	case 1: // AN1
-		//if(bSetSwPushOK){
+		if(bSetSwPushOK){
 			SetA2_Volt = AdAvrValue; //204->46,
-		//}		
+		}		
 		CHS3=0;
 		CHS2=0;
 		CHS1=1;
@@ -654,9 +668,9 @@ void SaveADtoEachChannel(void)
 		AdSel=2;
 		break;
 	case 2: // AN2
-		//if(bSetSwPushOK){
+		if(bSetSwPushOK){
 			SetA3_Volt = AdAvrValue; //204->46,
-		//}		
+		}		
 		CHS3=0;
 		CHS2=0;
 		CHS1=1;
@@ -730,7 +744,7 @@ void	CalcuAd(void)
 
 
 unsigned char 	PERIOD;
-unsigned int 	DutyCycle;
+unsigned int 	DutyCycle=0;;
 #define DUTI_MAX 0x3ff // 1023
 void InitPwm(void)
 {	
@@ -759,7 +773,7 @@ void UpdatePwmDuty(void)
 
 
 #define WRSIZE	8	
-volatile const unsigned char  WriteBuf[WRSIZE];
+volatile const unsigned char  WriteBuf[WRSIZE] = {0,0,0,0,0,0,0,0};
 unsigned int  SavedDutyCycle;
 unsigned int  SavedSetA1_Volt;
 unsigned int  SavedSetA2_Volt;
@@ -790,30 +804,32 @@ ReadVal(void)
 	SavedDutyCycle = SavedDutyCycle << 8;
 	temp = WriteBuf[0];
 	SavedDutyCycle = SavedDutyCycle | ((unsigned int)temp & 0x00ff);
+	DutyCycle = SavedDutyCycle;
+	
 
 	temp = WriteBuf[3];
 	SavedSetA1_Volt = (unsigned int)temp;
 	SavedSetA1_Volt = SavedSetA1_Volt << 8;
 	temp = WriteBuf[2];
 	SavedSetA1_Volt = SavedSetA1_Volt | ((unsigned int)temp & 0x00ff);
+	SetA1_Volt = SavedSetA1_Volt;
 
 	temp = WriteBuf[5];
 	SavedSetA2_Volt = (unsigned int)temp;
 	SavedSetA2_Volt = SavedSetA2_Volt << 8;
 	temp = WriteBuf[4];
 	SavedSetA2_Volt = SavedSetA2_Volt | ((unsigned int)temp & 0x00ff);
+	SetA2_Volt = SavedSetA2_Volt;
 
 	temp = WriteBuf[7];
 	SavedSetA3_Volt = (unsigned int)temp;
 	SavedSetA3_Volt = SavedSetA3_Volt << 8;
 	temp = WriteBuf[6];
 	SavedSetA3_Volt = SavedSetA3_Volt | ((unsigned int)temp & 0x00ff);
+	SetA3_Volt = SavedSetA3_Volt;
 }
 
-#define SETSW_PUSH		0 // 스위치 눌렀을 때가 0 값이다.
-unsigned    char    SetSwCharterTimer=0;
-bit bSetSwPushOK;
-bit bSetSw_UpEdge;
+
 bit IsSetSw_UpEdge(void)
 {	
 	if(_SAVE_SW == SETSW_PUSH){ // 스위치를 눌렀을 때 !!!
@@ -832,6 +848,45 @@ bit IsSetSw_UpEdge(void)
 }
 
 
+#define	A_SET_V_MAX 5000 // mV
+#define	A_SET_V_MIN 0
+#define A_SET_A_MAX 20000 // mA
+#define A_SET_A_MIN 0
+#define SET_AMP_PER_VOLT	((A_SET_A_MAX - A_SET_A_MIN) / (A_SET_V_MAX - A_SET_V_MIN)) // 2mV / 1mV
+unsigned int GetDutyByCompareCurrent(unsigned int duty, 
+									  unsigned int setVolt, unsigned int inVolt)
+{
+	long double setCurrent; // 변환된 볼륨에의한 셋팅 전류 값
+	long double inCurrent;  // 변환된 입력 피드백 전류 값
+	long double OffsetDutyCycle;
+	
+	setCurrent = (long double)setVolt * SET_AMP_PER_VOLT; // 1000 x 2 = 2000mA
+	inCurrent = (((long double)inVolt - 600) / 60 ) * 1000; 
+
+	OffsetDutyCycle = ((setCurrent * 3)/100) + 40; //	+/- 4 % , 200 *10 / 100 = 20
+	
+	if(setCurrent > inCurrent){ 			
+		if( setCurrent > (inCurrent + OffsetDutyCycle) ){
+			if(duty < DUTI_MAX)	duty++; 
+			else				duty = DUTI_MAX; 
+		}
+	}else if(setCurrent < inCurrent){
+		if( (setCurrent + OffsetDutyCycle) < inCurrent ){
+			if(duty > 0)		duty--;
+		}
+	}		
+
+	if(AnalogValidTime > 20){	
+		if(setVolt <= A_SET_V_MIN)
+			DutyCycle = 0;
+		if(setVolt >= A_SET_V_MAX)
+			DutyCycle = DUTI_MAX;
+	}
+	
+	return duty;
+}
+
+
 
 void main(void)
 {	
@@ -847,35 +902,62 @@ void main(void)
 	TMR0IE = TRUE;
 	SWDTEN = TRUE;  // Software Controlled Watchdog Timer Enable bit / 1 = Watchdog Timer is on
 
-	ReadVal();
+	AdSel=0;	
 
-	AdSel=0;
-	
+	ReadVal();
+	_LAMP_ON = TRUE;
+	UpdatePwmDuty();
+		
 	bSetSw_UpEdge = FALSE;
 	bSetSwPushOK = FALSE;
-
+	StartTimer = 0;
+	bFlashing = FALSE;
+	bInBlinkLED = FALSE;
+	
 	while(1){
 		CLRWDT();
 
 		if(IsSetSw_UpEdge()){
 			WriteVal(DutyCycle, SetA1_Volt, SetA2_Volt, SetA3_Volt, WriteBuf);
-			bSetSw_UpEdge = FALSE;
-			
-		}		
+			bSetSw_UpEdge = FALSE;			
+		}
+
+		if(_IN_BLINK){
+			if(InBlinkTimer > 20)
+				bInBlinkLED = OFF;	
+		}else{
+			InBlinkTimer = 0;
+			bInBlinkLED = ON;
+		}			
 
 		CalcuAd(); // AD 값을 읽는다.
 		
-		if(SavedSetA1_Volt > 2500){
-			_RUNLED = LOW; // on
+		if(bInBlinkLED == ON){
+			if(bFlashing){
+				bFlashing = FALSE;
+				ReadVal();
+				StartTimer = 0;				
+			}else{
+				if(StartTimer > 20){
+					if(TSB.bAdSave){
+						TSB.bAdSave = FALSE;
+				
+						DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetA1_Volt, A_IN_Volt);
+						//DutyCycle = DUTI_MAX/5;
+					}
+				}
+			}
+			_LAMP_ON = TRUE;
+			_RUNLED = LOW;
 		}else{
-			_RUNLED = HIGH;	// off
-		}
-
-
-		_LAMP_ON = TRUE;
-		DutyCycle = (DUTI_MAX /5);
-		UpdatePwmDuty();
+			bFlashing = TRUE;
+			DutyCycle = 0;
+			_LAMP_ON = FALSE;
+			_RUNLED = HIGH;
+		}	
 		
+		UpdatePwmDuty();
+				
 	}
 }
 
@@ -893,6 +975,15 @@ void interrupt isr(void)
 		if(SetSwCharterTimer < 250)	SetSwCharterTimer++;
 
 		if(indayHighTimer<1000) indayHighTimer++;
+
+		if(AnalogValidTime < 100)	
+			AnalogValidTime++;
+
+		if(StartTimer < 1000) 
+			StartTimer++;
+
+		if(InBlinkTimer < 100)
+			InBlinkTimer++;
 	}
 
 	if(ADIntFlag && ADIE){
