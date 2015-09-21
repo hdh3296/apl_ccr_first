@@ -197,6 +197,10 @@ bit bSetSw_UpEdge;
 #define ON	1
 #define	OFF	0
 
+typedef enum{DAY=0, EVENING=1, NIGHT=2, NONE=3} tag_CurDay;
+tag_CurDay	CurDayNight;
+
+
 /*******************************************************
    manual play and record
 *******************************************************/
@@ -641,6 +645,7 @@ void  InitAD(void)
 unsigned    char    AdSel;
 unsigned long int AdSumValue=0;
 // 5000이면 5V이다.
+unsigned int SetAVoltage=0; 
 unsigned int SetA1_Volt=0; // SER A1 Voltage, AN0
 unsigned int SetA2_Volt=0; // SER A2 Voltage, AN1
 unsigned int SetA3_Volt=0; // SER A3 Voltage, AN2
@@ -748,7 +753,7 @@ void	CalcuAd(void)
 
 
 unsigned char 	PERIOD;
-unsigned int 	DutyCycle=0;;
+unsigned int 	DutyCycle=0;
 #define DUTI_MAX 0x3ff // 1023
 void InitPwm(void)
 {	
@@ -766,7 +771,7 @@ void InitPwm(void)
 	T2CON = (0x04 + T2PreScale);	
 }
 
-void UpdatePwmDuty(void)
+void UpdatePwmDuty(unsigned int DutyCycle)
 {
 	DC1B0 = (bit)DutyCycle;		//update the PWM duty cycle 
 	DC1B1 = (bit)(DutyCycle>>1);
@@ -776,61 +781,47 @@ void UpdatePwmDuty(void)
 
 
 
-#define WRSIZE	8	
-volatile const unsigned char  WriteBuf[WRSIZE] = {0,0,0,0,0,0,0,0};
-unsigned int  SavedDutyCycle;
-unsigned int  SavedSetA1_Volt;
-unsigned int  SavedSetA2_Volt;
-unsigned int  SavedSetA3_Volt;
-void WriteVal(unsigned int Src0, unsigned int Src1, 
-				   unsigned int Src2, unsigned int Src3, unsigned char* DestBuf)
+#define WRSIZE	4	
+volatile const unsigned char  Saved1Buf[WRSIZE] = {0,};
+volatile const unsigned char  Saved2Buf[WRSIZE] = {0,};
+volatile const unsigned char  Saved3Buf[WRSIZE] = {0,};
+
+unsigned int  SavedDutyCycle1 = 0;
+unsigned int  SavedSetA1_Volt = 0;
+unsigned int  SavedDutyCycle2 = 0;
+unsigned int  SavedSetA2_Volt = 0;
+unsigned int  SavedDutyCycle3 = 0;
+unsigned int  SavedSetA3_Volt = 0;
+void WriteVal(unsigned int DutiCycle, unsigned int SetAVoltage, unsigned char* DestBuf)
 {	
-	unsigned char SrcBuf[WRSIZE];
+	unsigned char SrcBuf[4];
+
+	SrcBuf[0] = (unsigned char)DutiCycle;
+	SrcBuf[1] = (unsigned char)(DutiCycle >> 8);
+	SrcBuf[2] = (unsigned char)SetAVoltage;
+	SrcBuf[3] = (unsigned char)(SetAVoltage >> 8);	
 	
-	SrcBuf[0] = (unsigned char)Src0;
-	SrcBuf[1] = (unsigned char)(Src0 >> 8);	
-	SrcBuf[2] = (unsigned char)Src1;
-	SrcBuf[3] = (unsigned char)(Src1 >> 8);	
-	SrcBuf[4] = (unsigned char)Src2;
-	SrcBuf[5] = (unsigned char)(Src2 >> 8);	
-	SrcBuf[6] = (unsigned char)Src3;
-	SrcBuf[7] = (unsigned char)(Src3 >> 8);	
-	
-	flash_write((far unsigned char *)SrcBuf, WRSIZE, (far unsigned char *)DestBuf);	
+	flash_write((far unsigned char *)SrcBuf, 4, (far unsigned char *)DestBuf);	
 }
 
-ReadVal(void)
+ReadVal(unsigned int* pSavedDutyCycle, unsigned int* pSavedSetA_Volt, 
+			 far unsigned char* SavedBuf, unsigned int* pSetA_Volt)
 {
 	unsigned char temp;
 	
-	temp = WriteBuf[1];
-	SavedDutyCycle = (unsigned int)temp;
-	SavedDutyCycle = SavedDutyCycle << 8;
-	temp = WriteBuf[0];
-	SavedDutyCycle = SavedDutyCycle | ((unsigned int)temp & 0x00ff);
-	DutyCycle = SavedDutyCycle;
-	
+	temp = SavedBuf[1];
+	*pSavedDutyCycle = (unsigned int)temp;
+	*pSavedDutyCycle = (*pSavedDutyCycle) << 8;
+	temp = SavedBuf[0];
+	*pSavedDutyCycle = (*pSavedDutyCycle) | ((unsigned int)temp & 0x00ff);
+	DutyCycle = *pSavedDutyCycle;	
 
-	temp = WriteBuf[3];
-	SavedSetA1_Volt = (unsigned int)temp;
-	SavedSetA1_Volt = SavedSetA1_Volt << 8;
-	temp = WriteBuf[2];
-	SavedSetA1_Volt = SavedSetA1_Volt | ((unsigned int)temp & 0x00ff);
-	SetA1_Volt = SavedSetA1_Volt;
-
-	temp = WriteBuf[5];
-	SavedSetA2_Volt = (unsigned int)temp;
-	SavedSetA2_Volt = SavedSetA2_Volt << 8;
-	temp = WriteBuf[4];
-	SavedSetA2_Volt = SavedSetA2_Volt | ((unsigned int)temp & 0x00ff);
-	SetA2_Volt = SavedSetA2_Volt;
-
-	temp = WriteBuf[7];
-	SavedSetA3_Volt = (unsigned int)temp;
-	SavedSetA3_Volt = SavedSetA3_Volt << 8;
-	temp = WriteBuf[6];
-	SavedSetA3_Volt = SavedSetA3_Volt | ((unsigned int)temp & 0x00ff);
-	SetA3_Volt = SavedSetA3_Volt;
+	temp = SavedBuf[3];
+	*pSavedSetA_Volt = (unsigned int)temp;
+	*pSavedSetA_Volt = *pSavedSetA_Volt << 8;
+	temp = SavedBuf[2];
+	*pSavedSetA_Volt = *pSavedSetA_Volt | ((unsigned int)temp & 0x00ff);
+	*pSetA_Volt = *pSavedSetA_Volt; // 주간 셋팅 값 
 }
 
 
@@ -907,9 +898,6 @@ bit IsInLED_ON(unsigned char bLedState, unsigned char* Timer)
 	return bBlkLedOn;
 }
 
-typedef enum{NONE=0, DAY=1, EVENING=2, NIGHT=3} tag_CurDay;
-tag_CurDay	CurDay;
-
 unsigned char GetDayEveningNight(void)
 {
 	static bit bDayLed, bNightLed;
@@ -919,13 +907,13 @@ unsigned char GetDayEveningNight(void)
 	bNightLed = IsInLED_ON(_IN_NIGHT, &InNightTimer);
 
 	if(bDayLed && (bNightLed == FALSE)) // 낮 
-		ret = 1;
+		ret = DAY;
 	else if(bDayLed && bNightLed) // 저녘 
-		ret = 2;
+		ret = EVENING;
 	else if((bDayLed == FALSE) && bNightLed) // 밤	
-		ret = 3;
+		ret = NIGHT;
 	else
-		ret = 0;
+		ret = NONE;
 
 	return ret;
 		
@@ -950,11 +938,11 @@ void main(void)
 	SWDTEN = TRUE;  // Software Controlled Watchdog Timer Enable bit / 1 = Watchdog Timer is on
 
 	AdSel=0;	
-
-	ReadVal();
+/*
+	ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf);
 	_LAMP_ON = TRUE;
-	UpdatePwmDuty();
-		
+	UpdatePwmDuty(DutyCycle);
+*/		
 	bSetSw_UpEdge = FALSE;
 	bSetSwPushOK = FALSE;
 	StartTimer = 0;
@@ -964,27 +952,40 @@ void main(void)
 	while(1){
 		CLRWDT();
 
-		CurDay = GetDayEveningNight(); // NONE, DAY , EVENING , NIGHT 
+		CurDayNight = GetDayEveningNight(); // NONE, DAY , EVENING , NIGHT 값 저장 
 		
 		// 셋업 스위치 누르고 뗐을 때 !
-		if(IsSetSw_UpEdge()){
-			WriteVal(DutyCycle, SetA1_Volt, SetA2_Volt, SetA3_Volt, WriteBuf);
+		if(IsSetSw_UpEdge()){			
+			if(CurDayNight == DAY) WriteVal(DutyCycle, SetA1_Volt, Saved1Buf);
+			else if(CurDayNight == EVENING) WriteVal(DutyCycle, SetA2_Volt, Saved2Buf);
+			else if(CurDayNight == NIGHT) WriteVal(DutyCycle, SetA3_Volt, Saved3Buf);
+			
 			bSetSw_UpEdge = FALSE;			
 		}
-			
-		// AD 값을 읽는다.
-		CalcuAd(); 
+
+
+		CalcuAd(); 	
 		
 		if(IsInLED_ON(_IN_BLINK,&InBlinkTimer)){ // Blink Led 가 On 일 때 
 			if(bAgoBlkLedOff){
 				bAgoBlkLedOff = FALSE;				
 				StartTimer = 0;
-				ReadVal();
+				if(CurDayNight == DAY) 
+					ReadVal(&SavedDutyCycle1, &SavedSetA1_Volt, Saved1Buf, &SetA1_Volt);
+				else if(CurDayNight == EVENING) 
+					ReadVal(&SavedDutyCycle2, &SavedSetA2_Volt, Saved2Buf, &SetA2_Volt);
+				else if(CurDayNight == NIGHT) 
+					ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &SetA3_Volt);
 			}else{
 				if(StartTimer > 20){
 					if(TSB.bAdSave){
-						TSB.bAdSave = FALSE;			
-						DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetA1_Volt, A_IN_Volt);
+						TSB.bAdSave = FALSE;
+
+						if(CurDayNight == DAY) SetAVoltage = SetA1_Volt;
+						else if(CurDayNight == EVENING) SetAVoltage = SetA2_Volt;
+						else if(CurDayNight == NIGHT) SetAVoltage = SetA3_Volt;
+						
+						DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, A_IN_Volt);
 					}
 				}
 			}
@@ -997,8 +998,8 @@ void main(void)
 			_LAMP_ON = FALSE; // LAMP OFF
 			_RUNLED = HIGH; // RunLed Off
 		}
-
-		UpdatePwmDuty();
+		
+		UpdatePwmDuty(DutyCycle);
 
 	}
 }
