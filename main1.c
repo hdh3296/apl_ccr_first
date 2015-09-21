@@ -181,7 +181,7 @@ unsigned       int        Mes;
 unsigned int indayHighTimer=0;
 unsigned int AnalogValidTime=0;
 unsigned int StartTimer;
-bit bFlashing;
+bit bAgoBlkLedOff;
 unsigned int InBlinkTimer=0;
 bit bInBlinkLED;
 
@@ -886,6 +886,21 @@ unsigned int GetDutyByCompareCurrent(unsigned int duty,
 	return duty;
 }
 
+// Blink Led On, Off 판별
+bit IsInBlinkLED_ON(void)
+{	
+	static bit bBlkLedOn;
+	
+	if(_IN_BLINK){
+		if(InBlinkTimer > 20) // LED OFF
+			bBlkLedOn = FALSE;	
+	}else{	// LED ON
+		InBlinkTimer = 0;
+		bBlkLedOn =  TRUE;
+	}
+
+	return bBlkLedOn;
+}
 
 
 void main(void)
@@ -911,46 +926,38 @@ void main(void)
 	bSetSw_UpEdge = FALSE;
 	bSetSwPushOK = FALSE;
 	StartTimer = 0;
-	bFlashing = FALSE;
+	bAgoBlkLedOff = FALSE;
 	bInBlinkLED = FALSE;
 	
 	while(1){
 		CLRWDT();
-
+		// 셋업 스위치 누르고 뗐을 때 !
 		if(IsSetSw_UpEdge()){
 			WriteVal(DutyCycle, SetA1_Volt, SetA2_Volt, SetA3_Volt, WriteBuf);
 			bSetSw_UpEdge = FALSE;			
 		}
-
-		if(_IN_BLINK){
-			if(InBlinkTimer > 20)
-				bInBlinkLED = OFF;	
-		}else{
-			InBlinkTimer = 0;
-			bInBlinkLED = ON;
-		}			
-
-		CalcuAd(); // AD 값을 읽는다.
+			
+		// AD 값을 읽는다.
+		CalcuAd(); 
 		
-		if(bInBlinkLED == ON){
-			if(bFlashing){
-				bFlashing = FALSE;
+		if(IsInBlinkLED_ON()){ // Blink Led 가 On 일 때 
+			if(bAgoBlkLedOff){
+				bAgoBlkLedOff = FALSE;				
+				StartTimer = 0;
 				ReadVal();
-				StartTimer = 0;				
 			}else{
 				if(StartTimer > 20){
 					if(TSB.bAdSave){
-						TSB.bAdSave = FALSE;
-				
+						TSB.bAdSave = FALSE;			
 						DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetA1_Volt, A_IN_Volt);
-						//DutyCycle = DUTI_MAX/5;
 					}
 				}
 			}
 			_LAMP_ON = TRUE;
 			_RUNLED = LOW;
-		}else{
-			bFlashing = TRUE;
+			
+		}else{ // Blink Led 가 Off 일 때 
+			bAgoBlkLedOff = TRUE;
 			DutyCycle = 0;
 			_LAMP_ON = FALSE;
 			_RUNLED = HIGH;
