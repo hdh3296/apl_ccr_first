@@ -758,7 +758,7 @@ void InitPwm(void)
 	PERIOD = DUTI_MAX;
 	PR2 = PERIOD;					// update the PWM period 주기 레지스터 
 	
-	T2PreScale = 0; 
+	T2PreScale = 1; 
 	T2CON = (0x04 + T2PreScale);	
 }
 
