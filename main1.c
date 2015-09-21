@@ -850,7 +850,7 @@ bit IsInLED_ON(unsigned char bLedState, unsigned char* Timer)
 
 	bBlkLedOn = TRUE;
 	if(bLedState){
-		if(*Timer > 20) // LED OFF
+		if(*Timer > 90) // LED OFF
 			bBlkLedOn = FALSE;	
 	}else{	// LED ON
 		*Timer = 0;
@@ -940,7 +940,7 @@ void main(void)
 
 		CalcuAd(); 	
 		
-		if(IsInLED_ON(_IN_BLINK,&InBlinkTimer)){ // Blink Led 가 On 일 때 
+		if(IsInLED_ON(_IN_BLINK, &InBlinkTimer)){ // Blink Led 가 On 일 때 
 			if(bAgoBlkLedOff){
 				bAgoBlkLedOff = FALSE;				
 				StartTimer = 0;
