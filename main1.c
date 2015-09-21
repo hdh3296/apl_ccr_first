@@ -182,7 +182,11 @@ unsigned int indayHighTimer=0;
 unsigned int AnalogValidTime=0;
 unsigned int StartTimer;
 bit bAgoBlkLedOff;
-unsigned int InBlinkTimer=0;
+unsigned char InBlinkTimer=0;
+unsigned char InDayTimer=0;
+unsigned char InNightTimer=0;
+
+
 bit bInBlinkLED;
 
 #define SETSW_PUSH		0 // 스위치 눌렀을 때가 0 값이다.
@@ -887,20 +891,48 @@ unsigned int GetDutyByCompareCurrent(unsigned int duty,
 }
 
 // Blink Led On, Off 판별
-bit IsInBlinkLED_ON(void)
+bit IsInLED_ON(unsigned char bLedState, unsigned char* Timer)
 {	
 	static bit bBlkLedOn;
-	
-	if(_IN_BLINK){
-		if(InBlinkTimer > 20) // LED OFF
+
+	bBlkLedOn = TRUE;
+	if(bLedState){
+		if(*Timer > 20) // LED OFF
 			bBlkLedOn = FALSE;	
 	}else{	// LED ON
-		InBlinkTimer = 0;
+		*Timer = 0;
 		bBlkLedOn =  TRUE;
 	}
 
 	return bBlkLedOn;
 }
+
+typedef enum{NONE=0, DAY=1, EVENING=2, NIGHT=3} tag_CurDay;
+tag_CurDay	CurDay;
+
+unsigned char GetDayEveningNight(void)
+{
+	static bit bDayLed, bNightLed;
+	unsigned char ret;
+	
+	bDayLed = IsInLED_ON(_IN_DAY, &InDayTimer);
+	bNightLed = IsInLED_ON(_IN_NIGHT, &InNightTimer);
+
+	if(bDayLed && (bNightLed == FALSE)) // 낮 
+		ret = 1;
+	else if(bDayLed && bNightLed) // 저녘 
+		ret = 2;
+	else if((bDayLed == FALSE) && bNightLed) // 밤	
+		ret = 3;
+	else
+		ret = 0;
+
+	return ret;
+		
+}
+
+
+
 
 
 void main(void)
@@ -931,6 +963,9 @@ void main(void)
 	
 	while(1){
 		CLRWDT();
+
+		CurDay = GetDayEveningNight(); // NONE, DAY , EVENING , NIGHT 
+		
 		// 셋업 스위치 누르고 뗐을 때 !
 		if(IsSetSw_UpEdge()){
 			WriteVal(DutyCycle, SetA1_Volt, SetA2_Volt, SetA3_Volt, WriteBuf);
@@ -940,7 +975,7 @@ void main(void)
 		// AD 값을 읽는다.
 		CalcuAd(); 
 		
-		if(IsInBlinkLED_ON()){ // Blink Led 가 On 일 때 
+		if(IsInLED_ON(_IN_BLINK,&InBlinkTimer)){ // Blink Led 가 On 일 때 
 			if(bAgoBlkLedOff){
 				bAgoBlkLedOff = FALSE;				
 				StartTimer = 0;
@@ -953,18 +988,18 @@ void main(void)
 					}
 				}
 			}
-			_LAMP_ON = TRUE;
-			_RUNLED = LOW;
+			_LAMP_ON = TRUE; // LAMP ON
+			_RUNLED = LOW; // RunLed On
 			
-		}else{ // Blink Led 가 Off 일 때 
+		}else if(bSetSwPushOK == FALSE){ // Blink Led 가 Off 일 때 
 			bAgoBlkLedOff = TRUE;
 			DutyCycle = 0;
-			_LAMP_ON = FALSE;
-			_RUNLED = HIGH;
-		}	
-		
+			_LAMP_ON = FALSE; // LAMP OFF
+			_RUNLED = HIGH; // RunLed Off
+		}
+
 		UpdatePwmDuty();
-				
+
 	}
 }
 
@@ -991,6 +1026,10 @@ void interrupt isr(void)
 
 		if(InBlinkTimer < 100)
 			InBlinkTimer++;
+		if(InDayTimer < 100)
+			InDayTimer++;
+		if(InNightTimer < 100)
+			InNightTimer++;
 	}
 
 	if(ADIntFlag && ADIE){
