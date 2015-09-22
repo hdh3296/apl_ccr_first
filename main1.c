@@ -809,7 +809,7 @@ bit IsSetSw_UpEdge(void)
 #define	A_SET_V_MIN 0
 #define A_SET_A_MAX 20000 // mA
 #define A_SET_A_MIN 0
-#define SET_AMP_PER_VOLT	((A_SET_A_MAX - A_SET_A_MIN) / (A_SET_V_MAX - A_SET_V_MIN)) // 2mV / 1mV
+#define SET_AMP_PER_VOLT	((A_SET_A_MAX - A_SET_A_MIN) / (A_SET_V_MAX - A_SET_V_MIN)) // 4 
 unsigned int GetDutyByCompareCurrent(unsigned int duty, 
 									  unsigned int setVolt, unsigned int inVolt)
 {
@@ -817,10 +817,11 @@ unsigned int GetDutyByCompareCurrent(unsigned int duty,
 	long double inCurrent;  // 변환된 입력 피드백 전류 값
 	long double OffsetDutyCycle;
 	
-	setCurrent = (long double)setVolt * SET_AMP_PER_VOLT; // 1000 x 2 = 2000mA
-	inCurrent = (((long double)inVolt - 600) / 60 ) * 1000; 
+	setCurrent = (long double)setVolt * SET_AMP_PER_VOLT; // 166 x 4 = 664
+	inCurrent = (((long double)inVolt - 600) / 60 ) * 1000; // (635 - 600)/60 * 1000 = 583
 
-	OffsetDutyCycle = ((setCurrent * 3)/100) + 40; //	+/- 4 % , 200 *10 / 100 = 20
+	if(setCurrent < 700) OffsetDutyCycle = ((setCurrent * 3)/100) + 80;
+	else OffsetDutyCycle = ((setCurrent * 3)/100) + 40; // (664 * 3)/100 + 40 = 59
 	
 	if(setCurrent > inCurrent){ 			
 		if( setCurrent > (inCurrent + OffsetDutyCycle) ){
@@ -943,7 +944,7 @@ void main(void)
 		if(IsInLED_ON(_IN_BLINK, &InBlinkTimer)){ // Blink Led 가 On 일 때 
 			if(bAgoBlkLedOff){
 				bAgoBlkLedOff = FALSE;				
-				StartTimer = 0;
+				//StartTimer = 0;
 				if(CurDayNight == DAY) 
 					ReadVal(&SavedDutyCycle1, &SavedSetA1_Volt, Saved1Buf, &SetA1_Volt);
 				else if(CurDayNight == EVENING) 
