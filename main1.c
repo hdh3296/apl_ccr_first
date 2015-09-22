@@ -807,17 +807,26 @@ bit IsSetSw_UpEdge(void)
 
 #define	A_SET_V_MAX 5000 // mV
 #define	A_SET_V_MIN 0
-#define A_SET_A_MAX 20000 // mA
-#define A_SET_A_MIN 0
-#define SET_AMP_PER_VOLT	((A_SET_A_MAX - A_SET_A_MIN) / (A_SET_V_MAX - A_SET_V_MIN)) // 4 
-unsigned int GetDutyByCompareCurrent(unsigned int duty, 
-									  unsigned int setVolt, unsigned int inVolt)
+#define A_SET_A_MAX1 20000 // mA
+#define A_SET_A_MIN1 0
+#define SET_AMP_PER_VOLT1	((A_SET_A_MAX1 - A_SET_A_MIN1) / (A_SET_V_MAX - A_SET_V_MIN)) // 4
+#define A_SET_A_MAX2 15000 // mA
+#define A_SET_A_MIN2 0
+#define SET_AMP_PER_VOLT2	((A_SET_A_MAX2 - A_SET_A_MIN2) / (A_SET_V_MAX - A_SET_V_MIN)) // 4
+#define A_SET_A_MAX3 10000 // mA
+#define A_SET_A_MIN3 0
+#define SET_AMP_PER_VOLT3	((A_SET_A_MAX3 - A_SET_A_MIN3) / (A_SET_V_MAX - A_SET_V_MIN)) // 4
+unsigned int GetDutyByCompareCurrent(unsigned int duty, unsigned int setVolt, 
+												  unsigned int inVolt, unsigned char CurDayNight)
 {
 	long double setCurrent; // 변환된 볼륨에의한 셋팅 전류 값
 	long double inCurrent;  // 변환된 입력 피드백 전류 값
 	long double OffsetDutyCycle;
+
+	if(CurDayNight == DAY) setCurrent = (long double)setVolt * SET_AMP_PER_VOLT1; // 166 x 4 = 664
+	else if(CurDayNight == EVENING) setCurrent = (long double)setVolt * SET_AMP_PER_VOLT2; // 166 x 4 = 664
+	else if(CurDayNight == NIGHT) setCurrent = (long double)setVolt * SET_AMP_PER_VOLT3; // 166 x 4 = 664
 	
-	setCurrent = (long double)setVolt * SET_AMP_PER_VOLT; // 166 x 4 = 664
 	inCurrent = (((long double)inVolt - 600) / 60 ) * 1000; // (635 - 600)/60 * 1000 = 583
 
 	if(setCurrent < 700) OffsetDutyCycle = ((setCurrent * 3)/100) + 80;
@@ -960,7 +969,7 @@ void main(void)
 						else if(CurDayNight == EVENING) SetAVoltage = SetA2_Volt;
 						else if(CurDayNight == NIGHT) SetAVoltage = SetA3_Volt;
 						
-						DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, A_IN_Volt);
+						DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, A_IN_Volt, CurDayNight);
 					}
 				}
 			}
