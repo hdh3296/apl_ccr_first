@@ -162,6 +162,8 @@ tag_CurDay	CurDayNight;
 
 unsigned int BeginTimer = 0;
 
+unsigned char AdCntMax;
+
 
 /*******************************************************
    manual play and record
@@ -693,7 +695,10 @@ void	CalcuAd(void)
 		AdSumValue = AdSumValue + (unsigned long int)AdCurValue;
 		AdCnt++;
 
-		if(AdCnt >= 50)
+		if(bSetSwPushOK) AdCntMax = 50;
+		else AdCntMax = 200;
+			
+		if(AdCnt >= AdCntMax)
 		{
 			CLRWDT();
 			
@@ -829,7 +834,7 @@ unsigned int GetDutyByCompareCurrent(unsigned int duty, unsigned int setVolt,
 	
 	inCurrent = (((long double)inVolt - 600) / 60 ) * 1000; // (635 - 600)/60 * 1000 = 583
 
-	OffsetDutyCycle = ((setCurrent * 3)/100) + 40; // 
+	OffsetDutyCycle = ((setCurrent * 6)/100) + 40; // 
 	
 	if(setCurrent > inCurrent){ // 760 > 583			
 		if( setCurrent > (inCurrent + OffsetDutyCycle) ){ // 760 > (583+82)=645
@@ -931,14 +936,16 @@ void main(void)
 	StartTimer = 0;
 	bAgoBlkLedOff = FALSE;
 	bInBlinkLED = FALSE;
-	
+	AdCntMax = 200;
+		
 	while(1){
 		CLRWDT();
 
 		CurDayNight = GetDayEveningNight(); // NONE, DAY , EVENING , NIGHT 값 저장 
 		
 		// 셋업 스위치 누르고 뗐을 때 !
-		if(IsSetSw_UpEdge()){			
+		if(IsSetSw_UpEdge()){
+			
 			if(CurDayNight == DAY) WriteVal(DutyCycle, SetA1_Volt, Saved1Buf);
 			else if(CurDayNight == EVENING) WriteVal(DutyCycle, SetA2_Volt, Saved2Buf);
 			else if(CurDayNight == NIGHT) WriteVal(DutyCycle, SetA3_Volt, Saved3Buf);
@@ -953,12 +960,14 @@ void main(void)
 			if(bAgoBlkLedOff){
 				bAgoBlkLedOff = FALSE;				
 				StartTimer = 0;
+				
 				if(CurDayNight == DAY) 
 					ReadVal(&SavedDutyCycle1, &SavedSetA1_Volt, Saved1Buf, &SetA1_Volt);
 				else if(CurDayNight == EVENING) 
 					ReadVal(&SavedDutyCycle2, &SavedSetA2_Volt, Saved2Buf, &SetA2_Volt);
 				else if(CurDayNight == NIGHT) 
 					ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &SetA3_Volt);
+				
 			}else{
 				if(StartTimer > 100){
 					if(TSB.bAdSave){
@@ -1002,17 +1011,17 @@ void interrupt isr(void)
 
 		if(indayHighTimer<1000) indayHighTimer++;
 
-		if(AnalogValidTime < 100)	
+		if(AnalogValidTime < 200)	
 			AnalogValidTime++;
 
 		if(StartTimer < 1000) 
 			StartTimer++;
 
-		if(InBlinkTimer < 100)
+		if(InBlinkTimer < 200)
 			InBlinkTimer++;
-		if(InDayTimer < 100)
+		if(InDayTimer < 200)
 			InDayTimer++;
-		if(InNightTimer < 100)
+		if(InNightTimer < 200)
 			InNightTimer++;
 
 		if(BeginTimer < 1000)
