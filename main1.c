@@ -825,15 +825,14 @@ unsigned int GetDutyByCompareCurrent(unsigned int duty, unsigned int setVolt,
 
 	if(CurDayNight == DAY) setCurrent = (long double)setVolt * SET_AMP_PER_VOLT1; // 166 x 4 = 664
 	else if(CurDayNight == EVENING) setCurrent = (long double)setVolt * SET_AMP_PER_VOLT2; // 166 x 4 = 664
-	else if(CurDayNight == NIGHT) setCurrent = (long double)setVolt * SET_AMP_PER_VOLT3; // 166 x 4 = 664
+	else if(CurDayNight == NIGHT) setCurrent = (long double)setVolt * SET_AMP_PER_VOLT3; // 380 x 2 = 760
 	
 	inCurrent = (((long double)inVolt - 600) / 60 ) * 1000; // (635 - 600)/60 * 1000 = 583
 
-	if(setCurrent < 700) OffsetDutyCycle = ((setCurrent * 3)/100) + 80;
-	else OffsetDutyCycle = ((setCurrent * 3)/100) + 40; // (664 * 3)/100 + 40 = 59
+	OffsetDutyCycle = ((setCurrent * 3)/100) + 40; // 
 	
-	if(setCurrent > inCurrent){ 			
-		if( setCurrent > (inCurrent + OffsetDutyCycle) ){
+	if(setCurrent > inCurrent){ // 760 > 583			
+		if( setCurrent > (inCurrent + OffsetDutyCycle) ){ // 760 > (583+82)=645
 			if(duty < DUTI_MAX)	duty++; 
 			else				duty = DUTI_MAX; 
 		}
@@ -953,7 +952,7 @@ void main(void)
 		if(IsInLED_ON(_IN_BLINK, &InBlinkTimer)){ // Blink Led °¡ On ÀÏ ¶§ 
 			if(bAgoBlkLedOff){
 				bAgoBlkLedOff = FALSE;				
-				//StartTimer = 0;
+				StartTimer = 0;
 				if(CurDayNight == DAY) 
 					ReadVal(&SavedDutyCycle1, &SavedSetA1_Volt, Saved1Buf, &SetA1_Volt);
 				else if(CurDayNight == EVENING) 
@@ -961,7 +960,7 @@ void main(void)
 				else if(CurDayNight == NIGHT) 
 					ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &SetA3_Volt);
 			}else{
-				if(StartTimer > 20){
+				if(StartTimer > 100){
 					if(TSB.bAdSave){
 						TSB.bAdSave = FALSE;
 
