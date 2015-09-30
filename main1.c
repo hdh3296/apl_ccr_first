@@ -831,6 +831,7 @@ unsigned int GetDutyByCompareCurrent(unsigned int duty, unsigned int setVolt,
 	if(CurDayNight == DAY) setCurrent = (long double)setVolt * SET_AMP_PER_VOLT1; // 166 x 4 = 664
 	else if(CurDayNight == EVENING) setCurrent = (long double)setVolt * SET_AMP_PER_VOLT2; // 166 x 4 = 664
 	else if(CurDayNight == NIGHT) setCurrent = (long double)setVolt * SET_AMP_PER_VOLT3; // 380 x 2 = 760
+	else setCurrent = 0;
 	
 	inCurrent = (((long double)inVolt - 600) / 60 ) * 1000; // (635 - 600)/60 * 1000 = 583
 
@@ -956,7 +957,7 @@ void main(void)
 
 		CalcuAd(); 	
 		
-		if(IsInLED_ON(_IN_BLINK, &InBlinkTimer)){ // Blink Led 가 On 일 때 
+		if((IsInLED_ON(_IN_BLINK, &InBlinkTimer)) && (CurDayNight != NONE)){ // Blink Led 가 On 일 때 
 			if(bAgoBlkLedOff){
 				bAgoBlkLedOff = FALSE;				
 				StartTimer = 0;
@@ -967,8 +968,11 @@ void main(void)
 					ReadVal(&SavedDutyCycle2, &SavedSetA2_Volt, Saved2Buf, &SetA2_Volt);
 				else if(CurDayNight == NIGHT) 
 					ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &SetA3_Volt);
+				else
+					DutyCycle = 0x0;
+					
 				
-			}else{
+			}else if(CurDayNight != NONE){
 				if(StartTimer > 100){
 					if(TSB.bAdSave){
 						TSB.bAdSave = FALSE;
@@ -976,6 +980,7 @@ void main(void)
 						if(CurDayNight == DAY) SetAVoltage = SetA1_Volt;
 						else if(CurDayNight == EVENING) SetAVoltage = SetA2_Volt;
 						else if(CurDayNight == NIGHT) SetAVoltage = SetA3_Volt;
+						else	SetAVoltage = 0;							
 						
 						DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, A_IN_Volt, CurDayNight);
 					}
@@ -984,13 +989,13 @@ void main(void)
 			_LAMP_ON = TRUE; // LAMP ON
 			_RUNLED = LOW; // RunLed On
 			
-		}else if(bSetSwPushOK == FALSE){ // Blink Led 가 Off 일 때 
+		}else if((bSetSwPushOK == FALSE) || (CurDayNight == NONE)){ // Blink Led 가 Off 일 때 
 			bAgoBlkLedOff = TRUE;
 			DutyCycle = 0;
 			_LAMP_ON = FALSE; // LAMP OFF
 			_RUNLED = HIGH; // RunLed Off
 		}
-		
+
 		UpdatePwmDuty(DutyCycle);
 
 	}
