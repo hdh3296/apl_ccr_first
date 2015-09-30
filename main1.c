@@ -923,7 +923,9 @@ void main(void)
 		else if(CurDayNight == EVENING) 
 			ReadVal(&SavedDutyCycle2, &SavedSetA2_Volt, Saved2Buf, &SetA2_Volt);
 		else if(CurDayNight == NIGHT) 
-			ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &SetA3_Volt);		
+			ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &SetA3_Volt);
+		else 
+			DutyCycle = 0x0;
 		
 		_LAMP_ON = TRUE;
 		UpdatePwmDuty(DutyCycle);
@@ -946,12 +948,11 @@ void main(void)
 		
 		// 셋업 스위치 누르고 뗐을 때 !
 		if(IsSetSw_UpEdge()){
+			bSetSw_UpEdge = FALSE;
 			
 			if(CurDayNight == DAY) WriteVal(DutyCycle, SetA1_Volt, Saved1Buf);
 			else if(CurDayNight == EVENING) WriteVal(DutyCycle, SetA2_Volt, Saved2Buf);
 			else if(CurDayNight == NIGHT) WriteVal(DutyCycle, SetA3_Volt, Saved3Buf);
-			
-			bSetSw_UpEdge = FALSE;			
 		}
 
 
