@@ -771,24 +771,23 @@ void WriteVal(unsigned int DutiCycle, unsigned int SetAVoltage, unsigned char* D
 	flash_write((far unsigned char *)SrcBuf, 4, (far unsigned char *)DestBuf);	
 }
 
-ReadVal(unsigned int* pSavedDutyCycle, unsigned int* pSavedSetA_Volt, 
+void ReadVal(unsigned int* pSavedDutyCycle, unsigned int* pSavedSetA_Volt, 
 			 far unsigned char* SavedBuf, unsigned int* pSetA_Volt)
 {
-	unsigned char temp;
-	
+	unsigned int temp;
+
+	temp = 0x0000;
 	temp = SavedBuf[1];
-	*pSavedDutyCycle = (unsigned int)temp;
-	*pSavedDutyCycle = (*pSavedDutyCycle) << 8;
-	temp = SavedBuf[0];
-	*pSavedDutyCycle = (*pSavedDutyCycle) | ((unsigned int)temp & 0x00ff);
+	temp = temp << 8;
+	*pSavedDutyCycle = temp | ((unsigned int)SavedBuf[0] & 0x00ff);
 	DutyCycle = *pSavedDutyCycle;	
 
+	temp = 0x0000;
 	temp = SavedBuf[3];
-	*pSavedSetA_Volt = (unsigned int)temp;
-	*pSavedSetA_Volt = *pSavedSetA_Volt << 8;
-	temp = SavedBuf[2];
-	*pSavedSetA_Volt = *pSavedSetA_Volt | ((unsigned int)temp & 0x00ff);
+	temp = temp << 8;
+	*pSavedSetA_Volt = temp | ((unsigned int)SavedBuf[2] & 0x00ff);
 	*pSetA_Volt = *pSavedSetA_Volt; // 주간 셋팅 값 
+
 }
 
 
