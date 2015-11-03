@@ -957,9 +957,10 @@ void SetApaLamp(void)
 		else	SetAVoltage = 0;
 	
 		DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, A_IN_Volt, CurDayNight);
-		PwmOut(DutyCycle);
+		
 	}
-	_LAMP_ON = TRUE; // LAMP ON	
+	PwmOut(DutyCycle);
+	_LAMP_ON = TRUE; // LAMP ON		
 }
 
 
@@ -979,13 +980,11 @@ void ApaLampOnOff(void)
 			else if (CurDayNight == NIGHT)
 				ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &SetA3_Volt);
 			else
-				DutyCycle = 0x0;
-	
-	
+				DutyCycle = 0x0;			
 		}
 		else if (CurDayNight != NONE)
 		{
-			if (StartTimer > 100)
+			if (StartTimer > 10)
 			{
 				if (bAn3_Updated)
 				{
@@ -997,18 +996,18 @@ void ApaLampOnOff(void)
 					else	SetAVoltage = 0;
 	
 					DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, A_IN_Volt, CurDayNight);
-					PwmOut(DutyCycle);
 				}
 			}
 		}
-		_LAMP_ON = TRUE; // LAMP ON	
+		PwmOut(DutyCycle);
+		_LAMP_ON = TRUE; // LAMP ON			
 	}
 	else // Blink Led ∞° Off ¿œ ∂ß
 	{
 		bAgoBlkLedOff = TRUE;
 		DutyCycle = 0;
+		_LAMP_ON = FALSE; // LAMP OFF 
 		PwmOut(DutyCycle);
-		_LAMP_ON = FALSE; // LAMP OFF		 
 	}
 }
 
