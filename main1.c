@@ -568,7 +568,7 @@ InitPort(void)
 }
 
 
-unsigned int	AdAvrValue;
+unsigned int	InPutAD;
 unsigned int	AdCurValue;
 unsigned int	AdCnt;
 
@@ -617,7 +617,7 @@ void  InitAD(void)
     ADIF = 0; // A/D Converter Interrupt Flag bit / 0 = The A/D conversion is not complete
 
     AdCurValue = 0;
-    AdAvrValue = 0;
+    InPutAD = 0;
     AdCnt = 0;
 
     TSB.bAdInterrupt = 0;
@@ -642,7 +642,7 @@ unsigned int A_IN_Volt = 0; // A_IN Voltage, AN3
 unsigned int V_IN_Volt = 0; // V_IN Voltage, AN4
 
 
-void SaveADtoEachChannel(void)
+void SaveADtoEachChannel_ifSet(void)
 {
     switch (AdSel)
     {
@@ -650,7 +650,7 @@ void SaveADtoEachChannel(void)
         bAn0_Updated = TRUE;
         if (bSetSwPushOK)
         {
-            SetA1_Volt = AdAvrValue; //204->46,
+            SetA1_Volt = InPutAD; //204->46,
         }
         CHS3 = 0;
         CHS2 = 0;
@@ -662,7 +662,7 @@ void SaveADtoEachChannel(void)
         bAn1_Updated = TRUE;
         if (bSetSwPushOK)
         {
-            SetA2_Volt = AdAvrValue; //204->46,
+            SetA2_Volt = InPutAD; //204->46,
         }
         CHS3 = 0;
         CHS2 = 0;
@@ -674,7 +674,7 @@ void SaveADtoEachChannel(void)
         bAn2_Updated = TRUE;
         if (bSetSwPushOK)
         {
-            SetA3_Volt = AdAvrValue; //204->46,
+            SetA3_Volt = InPutAD; //204->46,
         }
         CHS3 = 0;
         CHS2 = 0;
@@ -684,7 +684,7 @@ void SaveADtoEachChannel(void)
         break;
     case 3: // AN3
         bAn3_Updated = TRUE;
-        A_IN_Volt = AdAvrValue; //204->46,
+        A_IN_Volt = InPutAD; //204->46,
         CHS3 = 0;
         CHS2 = 1;
         CHS1 = 0;
@@ -693,7 +693,7 @@ void SaveADtoEachChannel(void)
         break;
     case 4: // AN4
         bAn4_Updated = TRUE;
-        V_IN_Volt = AdAvrValue; //204->46,
+        V_IN_Volt = InPutAD; //204->46,
         CHS3 = 0;
         CHS2 = 0;
         CHS1 = 0;
@@ -706,6 +706,39 @@ void SaveADtoEachChannel(void)
         CHS1 = 0;
         CHS0 = 0;
         AdSel = 0;
+        break;
+    }
+}
+
+
+void SaveADtoEachChannel(void)
+{
+    switch (AdSel)
+    {
+    case 3: // AN3
+        bAn3_Updated = TRUE;
+        A_IN_Volt = InPutAD; //204->46,
+        CHS3 = 0;
+        CHS2 = 1;
+        CHS1 = 0;
+        CHS0 = 0;
+        AdSel = 4;
+        break;
+    case 4: // AN4
+        bAn4_Updated = TRUE;
+        V_IN_Volt = InPutAD; //204->46,
+        CHS3 = 0;
+        CHS2 = 0;
+        CHS1 = 1;
+        CHS0 = 1;
+        AdSel = 3;
+        break;
+    default:
+        CHS3 = 0;
+        CHS2 = 0;
+        CHS1 = 1;
+        CHS0 = 1;
+        AdSel = 3;
         break;
     }
 }
@@ -727,24 +760,32 @@ void	CalcuAd(void)
         itmpad = (itmpad & 0x00ff);
         AdCurValue = (AdCurValue | itmpad);
 
-        AdSumValue = AdSumValue + (unsigned long int)AdCurValue;
+        SumAD = SumAD + (unsigned long int)AdCurValue;
         AdCnt++;
 
-        if (bSetSwPushOK) AdCntMax = 50;
-        else AdCntMax = 200;
+        if (bSetSwPushOK) AdCntMax = 10;
+        else AdCntMax = 10;
 
         if (AdCnt >= AdCntMax)
         {
-            CLRWDT();
+			if (SumAD > 0)
+			{
+				tmpad = SumAD / AdCnt;
+				tmpad = (tmpad * 1000) / 192;	//204
+				InPutAD = (unsigned int)tmpad;
+				
+				if(bSetSwPushOK)	SaveADtoEachChannel_ifSet();
+				else				SaveADtoEachChannel();
 
-            tmpad = AdSumValue / AdCnt;
-            tmpad = (tmpad * 1000) / 192; 	//204
-            AdAvrValue = (unsigned int)tmpad;
-            SaveADtoEachChannel();
+			}
+			else
+			{
+				InPutAD = 0;
+			}
 
-            AdSumValue = 0;
+            SumAD = 0;
             AdCnt = 0;
-            AdAvrValue = 0;
+            
             TSB.bAdSave = TRUE;
         }
         GODONE = TRUE;	//AD (Because.....Auto GODONE = 0)
