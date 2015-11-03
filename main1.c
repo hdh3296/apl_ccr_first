@@ -959,6 +959,7 @@ void SetApaLamp(void)
 		DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, A_IN_Volt, CurDayNight);
 		PwmOut(DutyCycle);
 	}
+	_LAMP_ON = TRUE; // LAMP ON	
 }
 
 
@@ -1000,17 +1001,14 @@ void ApaLampOnOff(void)
 				}
 			}
 		}
-		_LAMP_ON = TRUE; // LAMP ON
-		_RUNLED = LOW; // RunLed On
-	
+		_LAMP_ON = TRUE; // LAMP ON	
 	}
 	else // Blink Led ∞° Off ¿œ ∂ß
 	{
 		bAgoBlkLedOff = TRUE;
 		DutyCycle = 0;
 		PwmOut(DutyCycle);
-		_LAMP_ON = FALSE; // LAMP OFF
-		_RUNLED = HIGH; // RunLed Off			 
+		_LAMP_ON = FALSE; // LAMP OFF		 
 	}
 }
 
