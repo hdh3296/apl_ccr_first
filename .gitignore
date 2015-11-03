@@ -43,3 +43,4 @@ cpu_18f4480/voice_4480/voice.X/Makefile
 *.d
 *.mk
 *.properties
+*.orig
