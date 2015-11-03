@@ -10,5 +10,7 @@ unsigned long int AdSumValue = 0;
 
 
 extern void	CalcuAd(void);
+extern void SetApaLamp(void);
+extern void ApaLampOnOff(void);
 
 

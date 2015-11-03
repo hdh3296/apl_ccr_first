@@ -773,7 +773,7 @@ void InitPwm(void)
     T2CON = (0x04 + T2PreScale);
 }
 
-void UpdatePwmDuty(unsigned int DutyCycle)
+void PwmOut(unsigned int DutyCycle)
 {
     DC1B0 = (bit)DutyCycle;		//update the PWM duty cycle
     DC1B1 = (bit)(DutyCycle >> 1);
@@ -945,6 +945,74 @@ unsigned char GetDayEveningNight(void)
 }
 
 
+void SetApaLamp(void)
+{
+	if (bAn3_Updated)
+	{
+		bAn3_Updated = FALSE;
+	
+		if (CurDayNight == DAY) SetAVoltage = SetA1_Volt;
+		else if (CurDayNight == EVENING) SetAVoltage = SetA2_Volt;
+		else if (CurDayNight == NIGHT) SetAVoltage = SetA3_Volt;
+		else	SetAVoltage = 0;
+	
+		DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, A_IN_Volt, CurDayNight);
+		PwmOut(DutyCycle);
+	}
+}
+
+
+void ApaLampOnOff(void)
+{
+	if ((IsInLED_ON(_IN_BLINK, &InBlinkTimer)) && (CurDayNight != NONE)) // Blink Led 가 On 일 때
+	{
+		if (bAgoBlkLedOff)
+		{
+			bAgoBlkLedOff = FALSE;
+			StartTimer = 0;
+	
+			if (CurDayNight == DAY)
+				ReadVal(&SavedDutyCycle1, &SavedSetA1_Volt, Saved1Buf, &SetA1_Volt);
+			else if (CurDayNight == EVENING)
+				ReadVal(&SavedDutyCycle2, &SavedSetA2_Volt, Saved2Buf, &SetA2_Volt);
+			else if (CurDayNight == NIGHT)
+				ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &SetA3_Volt);
+			else
+				DutyCycle = 0x0;
+	
+	
+		}
+		else if (CurDayNight != NONE)
+		{
+			if (StartTimer > 100)
+			{
+				if (bAn3_Updated)
+				{
+					bAn3_Updated = FALSE;
+	
+					if (CurDayNight == DAY) SetAVoltage = SetA1_Volt;
+					else if (CurDayNight == EVENING) SetAVoltage = SetA2_Volt;
+					else if (CurDayNight == NIGHT) SetAVoltage = SetA3_Volt;
+					else	SetAVoltage = 0;
+	
+					DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, A_IN_Volt, CurDayNight);
+					PwmOut(DutyCycle);
+				}
+			}
+		}
+		_LAMP_ON = TRUE; // LAMP ON
+		_RUNLED = LOW; // RunLed On
+	
+	}
+	else // Blink Led 가 Off 일 때
+	{
+		bAgoBlkLedOff = TRUE;
+		DutyCycle = 0;
+		PwmOut(DutyCycle);
+		_LAMP_ON = FALSE; // LAMP OFF
+		_RUNLED = HIGH; // RunLed Off			 
+	}
+}
 
 
 
@@ -976,7 +1044,7 @@ void main(void)
             DutyCycle = 0x0;
 
         _LAMP_ON = TRUE;
-        UpdatePwmDuty(DutyCycle);
+        PwmOut(DutyCycle);
         CLRWDT();
     }
     while (BeginTimer < 100);
@@ -1008,56 +1076,15 @@ void main(void)
 
 
         CalcuAd();
-
-        if ((IsInLED_ON(_IN_BLINK, &InBlinkTimer)) && (CurDayNight != NONE)) // Blink Led 가 On 일 때
-        {
-            if (bAgoBlkLedOff)
-            {
-                bAgoBlkLedOff = FALSE;
-                StartTimer = 0;
-
-                if (CurDayNight == DAY)
-                    ReadVal(&SavedDutyCycle1, &SavedSetA1_Volt, Saved1Buf, &SetA1_Volt);
-                else if (CurDayNight == EVENING)
-                    ReadVal(&SavedDutyCycle2, &SavedSetA2_Volt, Saved2Buf, &SetA2_Volt);
-                else if (CurDayNight == NIGHT)
-                    ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &SetA3_Volt);
-                else
-                    DutyCycle = 0x0;
-
-
-            }
-            else if (CurDayNight != NONE)
-            {
-                if (StartTimer > 100)
-                {
-                    if (bAn3_Updated)
-                    {
-                        bAn3_Updated = FALSE;
-
-                        if (CurDayNight == DAY) SetAVoltage = SetA1_Volt;
-                        else if (CurDayNight == EVENING) SetAVoltage = SetA2_Volt;
-                        else if (CurDayNight == NIGHT) SetAVoltage = SetA3_Volt;
-                        else	SetAVoltage = 0;
-
-                        DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, A_IN_Volt, CurDayNight);
-                    }
-                }
-            }
-            _LAMP_ON = TRUE; // LAMP ON
-            _RUNLED = LOW; // RunLed On
-
-        }
-        else if ((bSetSwPushOK == FALSE) || (CurDayNight == NONE)) // Blink Led 가 Off 일 때
-        {
-            bAgoBlkLedOff = TRUE;
-            DutyCycle = 0;
-            _LAMP_ON = FALSE; // LAMP OFF
-            _RUNLED = HIGH; // RunLed Off
-        }
-
-        UpdatePwmDuty(DutyCycle);
-
+		
+		if (bSetSwPushOK)
+		{
+			SetApaLamp();
+		}
+		else
+		{
+			ApaLampOnOff();
+		}
     }
 }
 
