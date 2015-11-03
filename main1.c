@@ -622,10 +622,17 @@ void  InitAD(void)
 
     TSB.bAdInterrupt = 0;
     TSB.bAdSave = 0;
+
+    bAn0_Updated = 0;
+    bAn1_Updated = 0;
+    bAn2_Updated = 0;
+    bAn3_Updated = 0;
+    bAn4_Updated = 0;
+
+    AdSel = 0;
 }
 
-unsigned    char    AdSel;
-unsigned long int AdSumValue = 0;
+
 // 5000이면 5V이다.
 unsigned int SetAVoltage = 0;
 unsigned int SetA1_Volt = 0; // SER A1 Voltage, AN0
@@ -787,7 +794,7 @@ unsigned int  SavedDutyCycle2 = 0;
 unsigned int  SavedSetA2_Volt = 0;
 unsigned int  SavedDutyCycle3 = 0;
 unsigned int  SavedSetA3_Volt = 0;
-void WriteVal(unsigned int DutiCycle, unsigned int SetAVoltage, unsigned char* DestBuf)
+void WriteVal(unsigned int DutiCycle, unsigned int SetAVoltage, volatile const unsigned char* DestBuf)
 {
     unsigned char SrcBuf[4];
 
@@ -800,7 +807,7 @@ void WriteVal(unsigned int DutiCycle, unsigned int SetAVoltage, unsigned char* D
 }
 
 void ReadVal(unsigned int* pSavedDutyCycle, unsigned int* pSavedSetA_Volt,
-             far unsigned char* SavedBuf, unsigned int* pSetA_Volt)
+             volatile const unsigned char* SavedBuf, unsigned int* pSetA_Volt)
 {
     unsigned int temp;
 
@@ -955,7 +962,6 @@ void main(void)
     TMR0IE = TRUE;
     SWDTEN = TRUE;  // Software Controlled Watchdog Timer Enable bit / 1 = Watchdog Timer is on
 
-    AdSel = 0;
 
     do
     {
@@ -1025,9 +1031,9 @@ void main(void)
             {
                 if (StartTimer > 100)
                 {
-                    if (TSB.bAdSave)
+                    if (bAn3_Updated)
                     {
-                        TSB.bAdSave = FALSE;
+                        bAn3_Updated = FALSE;
 
                         if (CurDayNight == DAY) SetAVoltage = SetA1_Volt;
                         else if (CurDayNight == EVENING) SetAVoltage = SetA2_Volt;
