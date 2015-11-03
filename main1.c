@@ -857,6 +857,8 @@ void ReadVal(unsigned int* pSavedDutyCycle, unsigned int* pSavedSetA_Volt,
     temp = temp << 8;
     *pSavedDutyCycle = temp | ((unsigned int)SavedBuf[0] & 0x00ff);
     DutyCycle = *pSavedDutyCycle;
+	DutyCycle = DutyCycle + 10;
+//	DutyCycle = (DutyCycle/100)*2 + DutyCycle;
 
     temp = 0x0000;
     temp = SavedBuf[3];
@@ -1021,7 +1023,7 @@ void ApaLampOnOff(void)
 			else if (CurDayNight == NIGHT)
 				ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &SetA3_Volt);
 			else
-				DutyCycle = 0x0;			
+				DutyCycle = 0x0;
 		}
 		else if (CurDayNight != NONE)
 		{
