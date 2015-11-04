@@ -642,7 +642,7 @@ unsigned int A_IN_Volt = 0; // A_IN Voltage, AN3
 unsigned int V_IN_Volt = 0; // V_IN Voltage, AN4
 
 
-void SaveADtoEachChannel_ifSet(void)
+void SaveADtoEachChannel_ifSetNone(void)
 {
     switch (AdSel)
     {
@@ -743,6 +743,142 @@ void SaveADtoEachChannel(void)
     }
 }
 
+void SaveADtoEachChannel_ifSetDay(void)
+{
+    switch (AdSel)
+    {
+    case 0: // AN0
+        bAn0_Updated = TRUE;
+        if (bSetSwPushOK)
+        {
+            SetA1_Volt = InPutAD; //204->46,
+        }
+        CHS3 = 0;
+        CHS2 = 0;
+        CHS1 = 1;
+        CHS0 = 1;
+        AdSel = 3;
+        break;
+    case 3: // AN3
+        bAn3_Updated = TRUE;
+        A_IN_Volt = InPutAD; //204->46,
+        CHS3 = 0;
+        CHS2 = 1;
+        CHS1 = 0;
+        CHS0 = 0;
+        AdSel = 4;
+        break;
+    case 4: // AN4
+        bAn4_Updated = TRUE;
+        V_IN_Volt = InPutAD; //204->46,
+        CHS3 = 0;
+        CHS2 = 0;
+        CHS1 = 0;
+        CHS0 = 0;
+        AdSel = 0;
+        break;
+    default:
+        CHS3 = 0;
+        CHS2 = 0;
+        CHS1 = 0;
+        CHS0 = 0;
+        AdSel = 0;
+        break;
+    }
+}
+
+void SaveADtoEachChannel_ifSetEvening(void)
+{
+    switch (AdSel)
+    {
+    case 1: // AN1
+        bAn1_Updated = TRUE;
+        if (bSetSwPushOK)
+        {
+            SetA2_Volt = InPutAD; //204->46,
+        }
+        CHS3 = 0;
+        CHS2 = 0;
+        CHS1 = 1;
+        CHS0 = 1;
+        AdSel = 3;
+        break;
+    case 3: // AN3
+        bAn3_Updated = TRUE;
+        A_IN_Volt = InPutAD; //204->46,
+        CHS3 = 0;
+        CHS2 = 1;
+        CHS1 = 0;
+        CHS0 = 0;
+        AdSel = 4;
+        break;
+    case 4: // AN4
+        bAn4_Updated = TRUE;
+        V_IN_Volt = InPutAD; //204->46,
+        CHS3 = 0;
+        CHS2 = 0;
+        CHS1 = 0;
+        CHS0 = 1;
+        AdSel = 1;
+        break;
+    default:
+        CHS3 = 0;
+        CHS2 = 0;
+        CHS1 = 0;
+        CHS0 = 1;
+        AdSel = 1;
+        break;
+    }
+}
+
+
+void SaveADtoEachChannel_ifSetNight(void)
+{
+    switch (AdSel)
+    {
+    case 2: // AN2
+        bAn2_Updated = TRUE;
+        if (bSetSwPushOK)
+        {
+            SetA3_Volt = InPutAD; //204->46,
+        }
+        CHS3 = 0;
+        CHS2 = 0;
+        CHS1 = 1;
+        CHS0 = 1;
+        AdSel = 3;
+        break;
+    case 3: // AN3
+        bAn3_Updated = TRUE;
+        A_IN_Volt = InPutAD; //204->46,
+        CHS3 = 0;
+        CHS2 = 1;
+        CHS1 = 0;
+        CHS0 = 0;
+        AdSel = 4;
+        break;
+    case 4: // AN4
+        bAn4_Updated = TRUE;
+        V_IN_Volt = InPutAD; //204->46,
+        CHS3 = 0;
+        CHS2 = 0;
+        CHS1 = 1;
+        CHS0 = 0;
+        AdSel = 2;
+        break;
+    default:
+        CHS3 = 0;
+        CHS2 = 0;
+        CHS1 = 1;
+        CHS0 = 0;
+        AdSel = 2;
+        break;
+    }
+}
+
+
+
+
 
 void	CalcuAd(void)
 {
@@ -779,9 +915,18 @@ void	CalcuAd(void)
 				InPutAD = 0;
 			}
 			
-			if(bSetSwPushOK)	SaveADtoEachChannel_ifSet();
-			else				SaveADtoEachChannel();
-
+			if (bSetSwPushOK)	// 셋팅 모드 일 때 !
+			{	
+				if(CurDayNight == DAY) 				SaveADtoEachChannel_ifSetDay();
+				else if(CurDayNight == EVENING)		SaveADtoEachChannel_ifSetEvening();
+				else if(CurDayNight == NIGHT)		SaveADtoEachChannel_ifSetNight();
+				else								SaveADtoEachChannel_ifSetNone();	
+					
+			}
+			else
+			{
+				SaveADtoEachChannel();
+			}
             SumAD = 0;
             AdCnt = 0;
             
@@ -864,7 +1009,6 @@ void ReadVal(unsigned int* pSavedDutyCycle, unsigned int* pSavedSetA_Volt,
     temp = temp << 8;
     *pSavedSetA_Volt = temp | ((unsigned int)SavedBuf[2] & 0x00ff);
     *pSetA_Volt = *pSavedSetA_Volt; // 주간 셋팅 값
-
 }
 
 
@@ -893,10 +1037,10 @@ bit IsSetSw_UpEdge(void)
 
 #define	A_SET_V_MAX 5000 // mV
 #define	A_SET_V_MIN 0
-#define A_SET_A_MAX1 20000 // mA
+#define A_SET_A_MAX1 10000 // mA
 #define A_SET_A_MIN1 0
 #define SET_AMP_PER_VOLT1	((A_SET_A_MAX1 - A_SET_A_MIN1) / (A_SET_V_MAX - A_SET_V_MIN)) // 4
-#define A_SET_A_MAX2 15000 // mA
+#define A_SET_A_MAX2 10000 // mA
 #define A_SET_A_MIN2 0
 #define SET_AMP_PER_VOLT2	((A_SET_A_MAX2 - A_SET_A_MIN2) / (A_SET_V_MAX - A_SET_V_MIN)) // 4
 #define A_SET_A_MAX3 10000 // mA
@@ -905,30 +1049,28 @@ bit IsSetSw_UpEdge(void)
 unsigned int GetDutyByCompareCurrent(unsigned int duty, unsigned int setVolt,
                                      unsigned int inVolt, unsigned char CurDayNight)
 {
-    long double setCurrent; // 변환된 볼륨에의한 셋팅 전류 값
-    long double inCurrent;  // 변환된 입력 피드백 전류 값
-    long double OffsetDutyCycle;
+    long double Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
+    long double In_Current;  // 변환된 입력 피드백 전류 값
+    long double Offset;
 
-    if (CurDayNight == DAY) setCurrent = (long double)setVolt * SET_AMP_PER_VOLT1; // 166 x 4 = 664
-    else if (CurDayNight == EVENING) setCurrent = (long double)setVolt * SET_AMP_PER_VOLT2; // 166 x 4 = 664
-    else if (CurDayNight == NIGHT) setCurrent = (long double)setVolt * SET_AMP_PER_VOLT3; // 380 x 2 = 760
-    else setCurrent = 0;
-
-    inCurrent = (((long double)inVolt - 600) / 60) * 1000;  // (635 - 600)/60 * 1000 = 583
-
-    OffsetDutyCycle = ((setCurrent * 6) / 100) + 40; //
-
-    if (setCurrent > inCurrent) // 760 > 583
+    if (CurDayNight == DAY) Set_Current = (long double)setVolt * SET_AMP_PER_VOLT1; // 166 x 4 = 664
+    else if (CurDayNight == EVENING) Set_Current = (long double)setVolt * SET_AMP_PER_VOLT2; // 166 x 4 = 664
+    else if (CurDayNight == NIGHT) Set_Current = (long double)setVolt * SET_AMP_PER_VOLT3; // 380 x 2 = 760
+    else Set_Current = 0;
+    In_Current = (((long double)inVolt - 600) / 60) * 1000;  // (635 - 600)/60 * 1000 = 583
+//    Offset = ((Set_Current * 1) / 100); // 오프셋 값 
+	Offset = 10;
+    if (In_Current < Set_Current) // 760 > 583
     {
-        if (setCurrent > (inCurrent + OffsetDutyCycle))   // 760 > (583+82)=645
+        if ((In_Current + Offset) < Set_Current)   // 760 > (583+82)=645
         {
             if (duty < DUTI_MAX)	duty++;
-            else				duty = DUTI_MAX;
+            else					duty = DUTI_MAX;
         }
     }
-    else if (setCurrent < inCurrent)
+    else if (In_Current > Set_Current)
     {
-        if ((setCurrent + OffsetDutyCycle) < inCurrent)
+        if (In_Current > (Set_Current + Offset))
         {
             if (duty > 0)		duty--;
         }
@@ -989,9 +1131,10 @@ unsigned char GetDayEveningNight(void)
 
 void SetApaLamp(void)
 {
-	if (bAn3_Updated)
+	if (bAn3_Updated && bAn0_Updated)
 	{
 		bAn3_Updated = FALSE;
+		bAn0_Updated = FALSE;
 	
 		if (CurDayNight == DAY) SetAVoltage = SetA1_Volt;
 		else if (CurDayNight == EVENING) SetAVoltage = SetA2_Volt;
@@ -1069,7 +1212,6 @@ void main(void)
     TMR0IE = TRUE;
     SWDTEN = TRUE;  // Software Controlled Watchdog Timer Enable bit / 1 = Watchdog Timer is on
 
-
     do
     {
         CurDayNight = GetDayEveningNight(); // NONE, DAY , EVENING , NIGHT 값 저장
@@ -1087,8 +1229,6 @@ void main(void)
         CLRWDT();
     }
     while (BeginTimer < 100);
-
-
 
     bSetSw_UpEdge = FALSE;
     bSetSwPushOK = FALSE;
