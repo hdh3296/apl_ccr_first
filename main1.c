@@ -773,15 +773,14 @@ void	CalcuAd(void)
 				tmpad = SumAD / AdCnt;
 				tmpad = (tmpad * 1000) / 192;	//204
 				InPutAD = (unsigned int)tmpad;
-				
-				if(bSetSwPushOK)	SaveADtoEachChannel_ifSet();
-				else				SaveADtoEachChannel();
-
 			}
 			else
 			{
 				InPutAD = 0;
 			}
+			
+			if(bSetSwPushOK)	SaveADtoEachChannel_ifSet();
+			else				SaveADtoEachChannel();
 
             SumAD = 0;
             AdCnt = 0;
