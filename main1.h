@@ -241,8 +241,8 @@ unsigned int V_IN_Volt = 0; // V_IN Voltage, AN4
 
 unsigned int	InPutAD;
 unsigned int	AdCurValue;
-unsigned int	AdCnt_1;
-unsigned int	tmpSetADCnt;
+unsigned int	AdCnt;
+unsigned int	tmpSetADCnt_1;
 
 
 volatile struct TmpStatusBit

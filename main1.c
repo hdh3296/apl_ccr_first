@@ -425,7 +425,7 @@ void  InitAD(void)
 
     AdCurValue = 0;
     InPutAD = 0;
-    AdCnt_1 = 0;
+    AdCnt = 0;
 
     TSB.bAdInterrupt = 0;
     TSB.bAdSave = 0;
@@ -698,16 +698,16 @@ void	CalcuAd(void)
         AdCurValue = (AdCurValue | itmpad);
 
         SumAD = SumAD + (unsigned long int)AdCurValue;
-        AdCnt_1++;
+        AdCnt++;
 
         if (bSetSwPushOK) AdCntMax = 10;
         else AdCntMax = 10;
 
-        if (AdCnt_1 >= AdCntMax)
+        if (AdCnt >= AdCntMax)
         {
 			if (SumAD > 0)
 			{
-				tmpad = SumAD / AdCnt_1;
+				tmpad = SumAD / AdCnt;
 				tmpad = (tmpad * 1000) / 192;	//204
 				InPutAD = (unsigned int)tmpad;
 			}
@@ -729,7 +729,7 @@ void	CalcuAd(void)
 				SaveADtoEachChannel();
 			}
             SumAD = 0;
-            AdCnt_1 = 0;
+            AdCnt = 0;
             
             TSB.bAdSave = TRUE;
         }
@@ -912,22 +912,19 @@ unsigned char GetDayEveningNight(void)
 
 void GetSetAD(void)
 {
-	if (AdSel < 3)
+	if(bAn0_Updated)
 	{
-		if(bAn0_Updated)
-		{
-			bAn0_Updated = FALSE;
-			
-			tmpSumSet_1 = tmpSumSet_1 + (unsigned long int)tmpSetA1_Volt;
-			tmpSetADCnt++;
+		bAn0_Updated = FALSE;
+		
+		tmpSumSet_1 = tmpSumSet_1 + (unsigned long int)tmpSetA1_Volt;
+		tmpSetADCnt_1++;
 
-			if (AdCnt_1 >= 10)
-			{
-				SetA1_Volt = (unsigned int)(tmpSumSet_1 / AdCnt_1);
-				AdCnt_1 = 0;
-				tmpSumSet_1 = 0;
-			}			
-		}
+		if (tmpSetADCnt_1 >= 10)
+		{
+			SetA1_Volt = (unsigned int)(tmpSumSet_1 / tmpSetADCnt_1);
+			tmpSetADCnt_1 = 0;
+			tmpSumSet_1 = 0;
+		}			
 	}
 }
 
@@ -1060,6 +1057,7 @@ void main(void)
 
 
         CalcuAd();
+		
 // Set1 에 대해서만 일단 적용 하였다. 		
 		if (bSetSwPushOK)
 		{
@@ -1068,7 +1066,7 @@ void main(void)
 		else
 		{
 			tmpSumSet_1 = 0;
-			AdCnt_1 = 0;
+			tmpSetADCnt_1 = 0;
 		}
 		
 		if (bSetSwPushOK)
