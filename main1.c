@@ -451,7 +451,7 @@ void SaveADtoEachChannel_ifSetNone(void)
         bAn0_Updated = TRUE;
         if (bSetSwPushOK)
         {
-            tmpSetA1_Volt = InPutAD; //204->46,
+            ADValue[0] = InPutAD; //204->46,
         }
         CHS3 = 0;
         CHS2 = 0;
@@ -463,7 +463,7 @@ void SaveADtoEachChannel_ifSetNone(void)
         bAn1_Updated = TRUE;
         if (bSetSwPushOK)
         {
-            tmpSetA2_Volt = InPutAD; //204->46,
+            ADValue[1] = InPutAD; //204->46,
         }
         CHS3 = 0;
         CHS2 = 0;
@@ -475,7 +475,7 @@ void SaveADtoEachChannel_ifSetNone(void)
         bAn2_Updated = TRUE;
         if (bSetSwPushOK)
         {
-            tmpSetA3_Volt = InPutAD; //204->46,
+            ADValue[2] = InPutAD; //204->46,
         }
         CHS3 = 0;
         CHS2 = 0;
@@ -516,18 +516,18 @@ void SaveADtoEachChannel(void)
 {
     switch (AdSel)
     {
-    case 3: // AN3
+    case 3: // A_IN
         bAn3_Updated = TRUE;
-        A_IN_Volt = InPutAD; //204->46,
+        A_IN_Volt = InPutAD; 
         CHS3 = 0;
         CHS2 = 1;
         CHS1 = 0;
         CHS0 = 0;
         AdSel = 4;
         break;
-    case 4: // AN4
+    case 4: // V_IN
         bAn4_Updated = TRUE;
-        V_IN_Volt = InPutAD; //204->46,
+        V_IN_Volt = InPutAD; 
         CHS3 = 0;
         CHS2 = 0;
         CHS1 = 1;
@@ -552,7 +552,7 @@ void SaveADtoEachChannel_ifSetDay(void)
         bAn0_Updated = TRUE;
         if (bSetSwPushOK)
         {
-            tmpSetA1_Volt = InPutAD; //204->46,
+            ADValue[0] = InPutAD; //204->46,
         }
         CHS3 = 0;
         CHS2 = 0;
@@ -596,7 +596,7 @@ void SaveADtoEachChannel_ifSetEvening(void)
         bAn1_Updated = TRUE;
         if (bSetSwPushOK)
         {
-            tmpSetA2_Volt = InPutAD; //204->46,
+            ADValue[1] = InPutAD; //204->46,
         }
         CHS3 = 0;
         CHS2 = 0;
@@ -641,7 +641,7 @@ void SaveADtoEachChannel_ifSetNight(void)
         bAn2_Updated = TRUE;
         if (bSetSwPushOK)
         {
-            tmpSetA3_Volt = InPutAD; //204->46,
+            ADValue[2] = InPutAD; //204->46,
         }
         CHS3 = 0;
         CHS2 = 0;
@@ -721,8 +721,7 @@ void	CalcuAd(void)
 				if(CurDayNight == DAY) 				SaveADtoEachChannel_ifSetDay();
 				else if(CurDayNight == EVENING)		SaveADtoEachChannel_ifSetEvening();
 				else if(CurDayNight == NIGHT)		SaveADtoEachChannel_ifSetNight();
-				else								SaveADtoEachChannel_ifSetNone();	
-					
+				else								SaveADtoEachChannel_ifSetNone();				
 			}
 			else
 			{
@@ -916,7 +915,7 @@ void GetSetAD(void)
 	{
 		bAn0_Updated = FALSE;
 		
-		tmpSumSet_1 = tmpSumSet_1 + (unsigned long int)tmpSetA1_Volt;
+		tmpSumSet_1 = tmpSumSet_1 + (unsigned long int)ADValue[0];
 		tmpSetADCnt_1++;
 
 		if (tmpSetADCnt_1 >= 10)
@@ -931,7 +930,7 @@ void GetSetAD(void)
 	{
 		bAn1_Updated = FALSE;
 		
-		tmpSumSet_2 = tmpSumSet_2 + (unsigned long int)tmpSetA2_Volt;
+		tmpSumSet_2 = tmpSumSet_2 + (unsigned long int)ADValue[1];
 		tmpSetADCnt_2++;
 
 		if (tmpSetADCnt_2 >= 10)
@@ -946,7 +945,7 @@ void GetSetAD(void)
 	{
 		bAn2_Updated = FALSE;
 		
-		tmpSumSet_3 = tmpSumSet_3 + (unsigned long int)tmpSetA3_Volt;
+		tmpSumSet_3 = tmpSumSet_3 + (unsigned long int)ADValue[2];
 		tmpSetADCnt_3++;
 
 		if (tmpSetADCnt_3 >= 10)
