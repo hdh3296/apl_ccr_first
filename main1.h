@@ -236,7 +236,7 @@ unsigned int SetAVoltage = 0;
 unsigned int SetA1_Volt = 0; // SER A1 Voltage, AN0
 unsigned int SetA2_Volt = 0; // SER A2 Voltage, AN1
 unsigned int SetA3_Volt = 0; // SER A3 Voltage, AN2
-unsigned int ADValue[] = {0,0,0,0,0} // 각 채널에서 읽어드린 AD 값 
+unsigned int ADValue[] = {0,0,0,0,0}; // 각 채널에서 읽어드린 AD 값 
 
 unsigned int A_IN_Volt = 0; // A_IN Voltage, AN3
 unsigned int V_IN_Volt = 0; // V_IN Voltage, AN4

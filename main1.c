@@ -453,10 +453,6 @@ void SaveADtoEachChannel_ifSetNone(void)
         {
             ADValue[0] = InPutAD; //204->46,
         }
-        CHS3 = 0;
-        CHS2 = 0;
-        CHS1 = 0;
-        CHS0 = 1;
         AdSel = 1;
         break;
     case 1: // AN1
@@ -465,10 +461,6 @@ void SaveADtoEachChannel_ifSetNone(void)
         {
             ADValue[1] = InPutAD; //204->46,
         }
-        CHS3 = 0;
-        CHS2 = 0;
-        CHS1 = 1;
-        CHS0 = 0;
         AdSel = 2;
         break;
     case 2: // AN2
@@ -477,38 +469,23 @@ void SaveADtoEachChannel_ifSetNone(void)
         {
             ADValue[2] = InPutAD; //204->46,
         }
-        CHS3 = 0;
-        CHS2 = 0;
-        CHS1 = 1;
-        CHS0 = 1;
         AdSel = 3;
         break;
     case 3: // AN3
         bAn3_Updated = TRUE;
         A_IN_Volt = InPutAD; //204->46,
-        CHS3 = 0;
-        CHS2 = 1;
-        CHS1 = 0;
-        CHS0 = 0;
         AdSel = 4;
         break;
     case 4: // AN4
         bAn4_Updated = TRUE;
         V_IN_Volt = InPutAD; //204->46,
-        CHS3 = 0;
-        CHS2 = 0;
-        CHS1 = 0;
-        CHS0 = 0;
-        AdSel = 0;
+		AdSel = 0;		
         break;
     default:
-        CHS3 = 0;
-        CHS2 = 0;
-        CHS1 = 0;
-        CHS0 = 0;
-        AdSel = 0;
+		AdSel = 0;		        
         break;
     }
+	ADCON0 = ADCON0 | (AdSel << 2);
 }
 
 
@@ -519,29 +496,18 @@ void SaveADtoEachChannel(void)
     case 3: // A_IN
         bAn3_Updated = TRUE;
         A_IN_Volt = InPutAD; 
-        CHS3 = 0;
-        CHS2 = 1;
-        CHS1 = 0;
-        CHS0 = 0;
         AdSel = 4;
         break;
     case 4: // V_IN
         bAn4_Updated = TRUE;
         V_IN_Volt = InPutAD; 
-        CHS3 = 0;
-        CHS2 = 0;
-        CHS1 = 1;
-        CHS0 = 1;
         AdSel = 3;
         break;
     default:
-        CHS3 = 0;
-        CHS2 = 0;
-        CHS1 = 1;
-        CHS0 = 1;
         AdSel = 3;
         break;
     }
+	ADCON0 = ADCON0 | (AdSel << 2);
 }
 
 void SaveADtoEachChannel_ifSetDay(void)
@@ -554,28 +520,16 @@ void SaveADtoEachChannel_ifSetDay(void)
         {
             ADValue[0] = InPutAD; //204->46,
         }
-        CHS3 = 0;
-        CHS2 = 0;
-        CHS1 = 1;
-        CHS0 = 1;
         AdSel = 3;
         break;
     case 3: // AN3
         bAn3_Updated = TRUE;
         A_IN_Volt = InPutAD; //204->46,
-        CHS3 = 0;
-        CHS2 = 1;
-        CHS1 = 0;
-        CHS0 = 0;
         AdSel = 4;
         break;
     case 4: // AN4
         bAn4_Updated = TRUE;
         V_IN_Volt = InPutAD; //204->46,
-        CHS3 = 0;
-        CHS2 = 0;
-        CHS1 = 0;
-        CHS0 = 0;
         AdSel = 0;
         break;
     default:
@@ -586,6 +540,7 @@ void SaveADtoEachChannel_ifSetDay(void)
         AdSel = 0;
         break;
     }
+	ADCON0 = ADCON0 | (AdSel << 2);
 }
 
 void SaveADtoEachChannel_ifSetEvening(void)
