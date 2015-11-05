@@ -440,200 +440,93 @@ void  InitAD(void)
 }
 
 
-
-
-
-void SaveADtoEachChannel_ifSetNone(void)
+void SelChannel(UCHAR AdSel)
 {
-    switch (AdSel)
-    {
-    case 0: // AN0
-        bAn0_Updated = TRUE;
-        if (bSetSwPushOK)
-        {
-            ADValue[0] = InPutAD; //204->46,
-        }
-        AdSel = 1;
-        break;
-    case 1: // AN1
-        bAn1_Updated = TRUE;
-        if (bSetSwPushOK)
-        {
-            ADValue[1] = InPutAD; //204->46,
-        }
-        AdSel = 2;
-        break;
-    case 2: // AN2
-        bAn2_Updated = TRUE;
-        if (bSetSwPushOK)
-        {
-            ADValue[2] = InPutAD; //204->46,
-        }
-        AdSel = 3;
-        break;
-    case 3: // AN3
-        bAn3_Updated = TRUE;
-        A_IN_Volt = InPutAD; //204->46,
-        AdSel = 4;
-        break;
-    case 4: // AN4
-        bAn4_Updated = TRUE;
-        V_IN_Volt = InPutAD; //204->46,
-		AdSel = 0;		
-        break;
-    default:
-		AdSel = 0;		        
-        break;
-    }
-	ADCON0 = ADCON0 | (AdSel << 2);
-}
-
-
-void SaveADtoEachChannel(void)
-{
-    switch (AdSel)
-    {
-    case 3: // A_IN
-        bAn3_Updated = TRUE;
-        A_IN_Volt = InPutAD; 
-        AdSel = 4;
-        break;
-    case 4: // V_IN
-        bAn4_Updated = TRUE;
-        V_IN_Volt = InPutAD; 
-        AdSel = 3;
-        break;
-    default:
-        AdSel = 3;
-        break;
-    }
-	ADCON0 = ADCON0 | (AdSel << 2);
-}
-
-void SaveADtoEachChannel_ifSetDay(void)
-{
-    switch (AdSel)
-    {
-    case 0: // AN0
-        bAn0_Updated = TRUE;
-        if (bSetSwPushOK)
-        {
-            ADValue[0] = InPutAD; //204->46,
-        }
-        AdSel = 3;
-        break;
-    case 3: // AN3
-        bAn3_Updated = TRUE;
-        A_IN_Volt = InPutAD; //204->46,
-        AdSel = 4;
-        break;
-    case 4: // AN4
-        bAn4_Updated = TRUE;
-        V_IN_Volt = InPutAD; //204->46,
-        AdSel = 0;
-        break;
-    default:
-        CHS3 = 0;
+	switch (AdSel)
+	{
+	case 0:
+		CHS3 = 0;
         CHS2 = 0;
         CHS1 = 0;
         CHS0 = 0;
-        AdSel = 0;
-        break;
-    }
-	ADCON0 = ADCON0 | (AdSel << 2);
-}
-
-void SaveADtoEachChannel_ifSetEvening(void)
-{
-    switch (AdSel)
-    {
-    case 1: // AN1
-        bAn1_Updated = TRUE;
-        if (bSetSwPushOK)
-        {
-            ADValue[1] = InPutAD; //204->46,
-        }
-        CHS3 = 0;
+		break;
+	case 1:
+		CHS3 = 0;
+        CHS2 = 0;
+        CHS1 = 0;
+        CHS0 = 1;		
+		break;
+	case 2:
+		CHS3 = 0;
         CHS2 = 0;
         CHS1 = 1;
-        CHS0 = 1;
-        AdSel = 3;
-        break;
-    case 3: // AN3
-        bAn3_Updated = TRUE;
-        A_IN_Volt = InPutAD; //204->46,
-        CHS3 = 0;
+        CHS0 = 0;		
+		break;
+	case 3:
+		CHS3 = 0;
+        CHS2 = 0;
+        CHS1 = 1;
+        CHS0 = 1;		
+		break;
+	case 4:
+		CHS3 = 0;
         CHS2 = 1;
         CHS1 = 0;
-        CHS0 = 0;
-        AdSel = 4;
-        break;
-    case 4: // AN4
-        bAn4_Updated = TRUE;
-        V_IN_Volt = InPutAD; //204->46,
-        CHS3 = 0;
+        CHS0 = 0;		
+		break;
+	default:
+		CHS3 = 0;
         CHS2 = 0;
         CHS1 = 0;
-        CHS0 = 1;
-        AdSel = 1;
-        break;
-    default:
-        CHS3 = 0;
-        CHS2 = 0;
-        CHS1 = 0;
-        CHS0 = 1;
-        AdSel = 1;
-        break;
-    }
+        CHS0 = 0;		
+		break;
+	}
 }
 
 
-void SaveADtoEachChannel_ifSetNight(void)
+void GetChADVal(UINT InPutAD)
 {
+	ADValue[AdSel] = InPutAD; 
+	
     switch (AdSel)
     {
-    case 2: // AN2
-        bAn2_Updated = TRUE;
-        if (bSetSwPushOK)
-        {
-            ADValue[2] = InPutAD; //204->46,
-        }
-        CHS3 = 0;
-        CHS2 = 0;
-        CHS1 = 1;
-        CHS0 = 1;
+    case 0: // AN0, ³· 
+        bAn0_Updated = TRUE; 
         AdSel = 3;
         break;
-    case 3: // AN3
+    case 1: // AN1, Àú³è 
+        bAn1_Updated = TRUE;
+        AdSel = 3;
+        break;
+    case 2: // AN2, ¹ã
+        bAn2_Updated = TRUE; 
+        AdSel = 3;
+        break;
+    case 3: // AN3, A_IN
         bAn3_Updated = TRUE;
-        A_IN_Volt = InPutAD; //204->46,
-        CHS3 = 0;
-        CHS2 = 1;
-        CHS1 = 0;
-        CHS0 = 0;
         AdSel = 4;
         break;
-    case 4: // AN4
-        bAn4_Updated = TRUE;
-        V_IN_Volt = InPutAD; //204->46,
-        CHS3 = 0;
-        CHS2 = 0;
-        CHS1 = 1;
-        CHS0 = 0;
-        AdSel = 2;
+    case 4: // AN4, V_IN
+        bAn4_Updated = TRUE;        
+        if (bSetSwPushOK)
+        {
+			if (CurDayNight == DAY)				AdSel = 0;
+			else if (CurDayNight == EVENING)	AdSel = 1;
+			else if (CurDayNight == NIGHT)		AdSel = 2;
+			else								AdSel = 3;						
+        }	
+		else
+		{	
+			AdSel = 3;
+		}
         break;
     default:
-        CHS3 = 0;
-        CHS2 = 0;
-        CHS1 = 1;
-        CHS0 = 0;
-        AdSel = 2;
+		AdSel = 3;		        
         break;
     }
+	SelChannel(AdSel);
+
 }
-
-
-
 
 
 void	CalcuAd(void)
@@ -655,10 +548,7 @@ void	CalcuAd(void)
         SumAD = SumAD + (unsigned long int)AdCurValue;
         AdCnt++;
 
-        if (bSetSwPushOK) AdCntMax = 10;
-        else AdCntMax = 10;
-
-        if (AdCnt >= AdCntMax)
+        if (AdCnt >= 10)
         {
 			if (SumAD > 0)
 			{
@@ -671,17 +561,7 @@ void	CalcuAd(void)
 				InPutAD = 0;
 			}
 			
-			if (bSetSwPushOK)	// ¼ÂÆÃ ¸ðµå ÀÏ ¶§ !
-			{	
-				if(CurDayNight == DAY) 				SaveADtoEachChannel_ifSetDay();
-				else if(CurDayNight == EVENING)		SaveADtoEachChannel_ifSetEvening();
-				else if(CurDayNight == NIGHT)		SaveADtoEachChannel_ifSetNight();
-				else								SaveADtoEachChannel_ifSetNone();				
-			}
-			else
-			{
-				SaveADtoEachChannel();
-			}
+			GetChADVal(InPutAD);
             SumAD = 0;
             AdCnt = 0;
             
@@ -870,14 +750,14 @@ void GetSetAD(void)
 	{
 		bAn0_Updated = FALSE;
 		
-		tmpSumSet_1 = tmpSumSet_1 + (unsigned long int)ADValue[0];
-		tmpSetADCnt_1++;
+		tmpSumSet[0] = tmpSumSet[0] + (unsigned long int)ADValue[0];
+		tmpSetADCnt[0]++;
 
-		if (tmpSetADCnt_1 >= 10)
+		if (tmpSetADCnt[0] >= 10)
 		{
-			SetA1_Volt = (unsigned int)(tmpSumSet_1 / tmpSetADCnt_1);
-			tmpSetADCnt_1 = 0;
-			tmpSumSet_1 = 0;
+			FinalAD.SetA0 = (unsigned int)(tmpSumSet[0] / tmpSetADCnt[0]);
+			tmpSetADCnt[0] = 0;
+			tmpSumSet[0] = 0;
 		}			
 	}
 	
@@ -885,14 +765,14 @@ void GetSetAD(void)
 	{
 		bAn1_Updated = FALSE;
 		
-		tmpSumSet_2 = tmpSumSet_2 + (unsigned long int)ADValue[1];
-		tmpSetADCnt_2++;
+		tmpSumSet_1 = tmpSumSet_1 + (unsigned long int)ADValue[1];
+		tmpSetADCnt_1++;
 
-		if (tmpSetADCnt_2 >= 10)
+		if (tmpSetADCnt_1 >= 10)
 		{
-			SetA2_Volt = (unsigned int)(tmpSumSet_2 / tmpSetADCnt_2);
-			tmpSetADCnt_2 = 0;
-			tmpSumSet_2 = 0;
+			FinalAD.SetA1 = (unsigned int)(tmpSumSet_1 / tmpSetADCnt_1);
+			tmpSetADCnt_1 = 0;
+			tmpSumSet_1 = 0;
 		}			
 	}
 	
@@ -900,14 +780,14 @@ void GetSetAD(void)
 	{
 		bAn2_Updated = FALSE;
 		
-		tmpSumSet_3 = tmpSumSet_3 + (unsigned long int)ADValue[2];
-		tmpSetADCnt_3++;
+		tmpSumSet_2 = tmpSumSet_2 + (unsigned long int)ADValue[2];
+		tmpSetADCnt_2++;
 
-		if (tmpSetADCnt_3 >= 10)
+		if (tmpSetADCnt_2 >= 10)
 		{
-			SetA3_Volt = (unsigned int)(tmpSumSet_3 / tmpSetADCnt_3);
-			tmpSetADCnt_3 = 0;
-			tmpSumSet_3 = 0;
+			FinalAD.SetA2 = (unsigned int)(tmpSumSet_2 / tmpSetADCnt_2);
+			tmpSetADCnt_2 = 0;
+			tmpSumSet_2 = 0;
 		}			
 	}	
 
@@ -919,14 +799,15 @@ void SetApaLamp(void)
 {	
 	if (bAn3_Updated)
 	{
-		bAn3_Updated = FALSE;
+		FinalAD.A_IN = ADValue[3];
+		bAn3_Updated = FALSE;	
 	
-		if (CurDayNight == DAY) 			SetAVoltage = SetA1_Volt;
-		else if (CurDayNight == EVENING) 	SetAVoltage = SetA2_Volt;
-		else if (CurDayNight == NIGHT) 		SetAVoltage = SetA3_Volt;
+		if (CurDayNight == DAY) 			SetAVoltage = FinalAD.SetA0;
+		else if (CurDayNight == EVENING) 	SetAVoltage = FinalAD.SetA1;
+		else if (CurDayNight == NIGHT) 		SetAVoltage = FinalAD.SetA2;
 		else	SetAVoltage = 0;
 	
-		DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, A_IN_Volt, CurDayNight);
+		DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, FinalAD.A_IN, CurDayNight);
 		
 	}
 	PwmOut(DutyCycle);
@@ -944,11 +825,11 @@ void ApaLampOnOff(void)
 			StartTimer = 0;
 	
 			if (CurDayNight == DAY)
-				ReadVal(&SavedDutyCycle1, &SavedSetA1_Volt, Saved1Buf, &SetA1_Volt);
+				ReadVal(&SavedDutyCycle1, &SavedSetA1_Volt, Saved1Buf, &FinalAD.SetA0);
 			else if (CurDayNight == EVENING)
-				ReadVal(&SavedDutyCycle2, &SavedSetA2_Volt, Saved2Buf, &SetA2_Volt);
+				ReadVal(&SavedDutyCycle2, &SavedSetA2_Volt, Saved2Buf, &FinalAD.SetA1);
 			else if (CurDayNight == NIGHT)
-				ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &SetA3_Volt);
+				ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &FinalAD.SetA2);
 			else
 				DutyCycle = 0x0;
 		}
@@ -958,14 +839,15 @@ void ApaLampOnOff(void)
 			{
 				if (bAn3_Updated)
 				{
+					FinalAD.A_IN = ADValue[3];
 					bAn3_Updated = FALSE;
 	
-					if (CurDayNight == DAY) SetAVoltage = SetA1_Volt;
-					else if (CurDayNight == EVENING) SetAVoltage = SetA2_Volt;
-					else if (CurDayNight == NIGHT) SetAVoltage = SetA3_Volt;
+					if (CurDayNight == DAY) SetAVoltage = FinalAD.SetA0;
+					else if (CurDayNight == EVENING) SetAVoltage = FinalAD.SetA1;
+					else if (CurDayNight == NIGHT) SetAVoltage = FinalAD.SetA2;
 					else	SetAVoltage = 0;
 	
-					DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, A_IN_Volt, CurDayNight);
+					DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, FinalAD.A_IN, CurDayNight);
 				}
 			}
 		}
@@ -1003,11 +885,11 @@ void main(void)
     {
         CurDayNight = GetDayEveningNight(); // NONE, DAY , EVENING , NIGHT °ª ÀúÀå
         if (CurDayNight == DAY)
-            ReadVal(&SavedDutyCycle1, &SavedSetA1_Volt, Saved1Buf, &SetA1_Volt);
+            ReadVal(&SavedDutyCycle1, &SavedSetA1_Volt, Saved1Buf, &FinalAD.SetA0);
         else if (CurDayNight == EVENING)
-            ReadVal(&SavedDutyCycle2, &SavedSetA2_Volt, Saved2Buf, &SetA2_Volt);
+            ReadVal(&SavedDutyCycle2, &SavedSetA2_Volt, Saved2Buf, &FinalAD.SetA1);
         else if (CurDayNight == NIGHT)
-            ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &SetA3_Volt);
+            ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &FinalAD.SetA2);
         else
             DutyCycle = 0x0;
 
@@ -1022,7 +904,6 @@ void main(void)
     StartTimer = 0;
     bAgoBlkLedOff = FALSE;
     bInBlinkLED = FALSE;
-    AdCntMax = 200;
 
     while (1)
     {
@@ -1034,9 +915,9 @@ void main(void)
         {
             bSetSw_UpEdge = FALSE;
 
-            if (CurDayNight == DAY) WriteVal(DutyCycle, SetA1_Volt, Saved1Buf);
-            else if (CurDayNight == EVENING) WriteVal(DutyCycle, SetA2_Volt, Saved2Buf);
-            else if (CurDayNight == NIGHT) WriteVal(DutyCycle, SetA3_Volt, Saved3Buf);
+            if (CurDayNight == DAY) WriteVal(DutyCycle, FinalAD.SetA0, Saved1Buf);
+            else if (CurDayNight == EVENING) WriteVal(DutyCycle, FinalAD.SetA1, Saved2Buf);
+            else if (CurDayNight == NIGHT) WriteVal(DutyCycle, FinalAD.SetA2, Saved3Buf);
         }
 
 
@@ -1050,12 +931,12 @@ void main(void)
 		else
 		{
 			ApaLampOnOff();
+			tmpSumSet[0] = 0;
+			tmpSetADCnt[0] = 0;
 			tmpSumSet_1 = 0;
 			tmpSetADCnt_1 = 0;
 			tmpSumSet_2 = 0;
-			tmpSetADCnt_2 = 0;
-			tmpSumSet_3 = 0;
-			tmpSetADCnt_3 = 0;			
+			tmpSetADCnt_2 = 0;			
 		}
     }
 }
