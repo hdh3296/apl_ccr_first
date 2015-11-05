@@ -195,6 +195,10 @@ bit	bAn4_Updated = 0;
 unsigned    char    AdSel;
 unsigned long int SumAD = 0;
 unsigned long int tmpSumSet_1 = 0;
+unsigned long int tmpSumSet_2 = 0;
+unsigned long int tmpSumSet_3 = 0;
+
+
 
 
 unsigned char 	PERIOD;
@@ -243,6 +247,10 @@ unsigned int	InPutAD;
 unsigned int	AdCurValue;
 unsigned int	AdCnt;
 unsigned int	tmpSetADCnt_1;
+unsigned int	tmpSetADCnt_2;
+unsigned int	tmpSetADCnt_3;
+
+
 
 
 volatile struct TmpStatusBit

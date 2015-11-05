@@ -790,7 +790,7 @@ void ReadVal(unsigned int* pSavedDutyCycle, unsigned int* pSavedSetA_Volt,
     temp = temp << 8;
     *pSavedDutyCycle = temp | ((unsigned int)SavedBuf[0] & 0x00ff);
     DutyCycle = *pSavedDutyCycle;
-	DutyCycle = DutyCycle + 10;
+	DutyCycle = DutyCycle + 5;
 //	DutyCycle = (DutyCycle/100)*2 + DutyCycle;
 
     temp = 0x0000;
@@ -837,11 +837,11 @@ unsigned int GetDutyByCompareCurrent(unsigned int duty, unsigned int setVolt,
     else if (CurDayNight == NIGHT) Set_Current = (long double)setVolt * SET_AMP_PER_VOLT3; // 380 x 2 = 760
     else Set_Current = 0;
     In_Current = (((long double)inVolt - 600) / 60) * 1000;  // (635 - 600)/60 * 1000 = 583
-//    Offset = ((Set_Current * 1) / 100); // 오프셋 값 
+    Offset = 100 - (Set_Current/20); // 오프셋 값
+    if(Offset == 0) Offset = 10;
 
     if (In_Current < Set_Current) // 760 > 583
     {
-		Offset = 100;
         if ((In_Current + Offset) < Set_Current)   // 760 > (583+82)=645
         {
             if (duty < DUTI_MAX)	duty++;
@@ -850,7 +850,7 @@ unsigned int GetDutyByCompareCurrent(unsigned int duty, unsigned int setVolt,
     }
     else if (In_Current > Set_Current)
     {
-		Offset = 0;
+		Offset = Offset * 2;
         if (In_Current > (Set_Current + Offset))
         {
             if (duty > 0)		duty--;
@@ -926,8 +926,39 @@ void GetSetAD(void)
 			tmpSumSet_1 = 0;
 		}			
 	}
-}
+	
+	if(bAn1_Updated)
+	{
+		bAn1_Updated = FALSE;
+		
+		tmpSumSet_2 = tmpSumSet_2 + (unsigned long int)tmpSetA2_Volt;
+		tmpSetADCnt_2++;
 
+		if (tmpSetADCnt_2 >= 10)
+		{
+			SetA2_Volt = (unsigned int)(tmpSumSet_2 / tmpSetADCnt_2);
+			tmpSetADCnt_2 = 0;
+			tmpSumSet_2 = 0;
+		}			
+	}
+	
+	if(bAn2_Updated)
+	{
+		bAn2_Updated = FALSE;
+		
+		tmpSumSet_3 = tmpSumSet_3 + (unsigned long int)tmpSetA3_Volt;
+		tmpSetADCnt_3++;
+
+		if (tmpSetADCnt_3 >= 10)
+		{
+			SetA3_Volt = (unsigned int)(tmpSumSet_3 / tmpSetADCnt_3);
+			tmpSetADCnt_3 = 0;
+			tmpSumSet_3 = 0;
+		}			
+	}	
+
+	
+}
 
 // 셋팅 스위치 눌렀을 때 APL 램프 셋팅 
 void SetApaLamp(void)
@@ -969,7 +1000,7 @@ void ApaLampOnOff(void)
 		}
 		else if (CurDayNight != NONE)
 		{
-			if (StartTimer > 10)
+			if (StartTimer >= 100)
 			{
 				if (bAn3_Updated)
 				{
@@ -1044,7 +1075,6 @@ void main(void)
         CLRWDT();
 
         CurDayNight = GetDayEveningNight(); // NONE, DAY , EVENING , NIGHT 값 저장
-
         // 셋업 스위치 누르고 뗐을 때 !
         if (IsSetSw_UpEdge())
         {
@@ -1056,26 +1086,22 @@ void main(void)
         }
 
 
-        CalcuAd();
-		
-// Set1 에 대해서만 일단 적용 하였다. 		
+        CalcuAd();		
+// Set1 에 대해서만 일단 적용 하였다. 				
 		if (bSetSwPushOK)
 		{
 			GetSetAD();
-		}
-		else
-		{
-			tmpSumSet_1 = 0;
-			tmpSetADCnt_1 = 0;
-		}
-		
-		if (bSetSwPushOK)
-		{
-			SetApaLamp();
+			SetApaLamp();	
 		}
 		else
 		{
 			ApaLampOnOff();
+			tmpSumSet_1 = 0;
+			tmpSetADCnt_1 = 0;
+			tmpSumSet_2 = 0;
+			tmpSetADCnt_2 = 0;
+			tmpSumSet_3 = 0;
+			tmpSetADCnt_3 = 0;			
 		}
     }
 }
