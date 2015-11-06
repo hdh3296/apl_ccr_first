@@ -282,7 +282,7 @@ volatile struct TmpStatusBit   TSB;
 extern bit IsGet_InPutAd(UINT*, UCHAR*, UCHAR);
 extern void SetApaLamp(void);
 extern void ApaLampOnOff(void);
-extern void GetSetAD(void);
+extern void GetSetAD(tag_CurDay);
 extern void Set_AdCh(UCHAR);
 UCHAR ChangeAdChSel(UCHAR, tag_CurDay);
 

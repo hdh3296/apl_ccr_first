@@ -725,54 +725,25 @@ unsigned char GetDayEveningNight(void)
 }
 
 
-void GetSetAD(void)
+void GetSetAD(tag_CurDay CurDayNight)
 {
-	if (arIs_AdUpd[0])
-	{
-		arIs_AdUpd[0] = FALSE;
-		
-		tmpSumSet[0] = tmpSumSet[0] + (unsigned long int)arInPutAD[0];
-		tmpSetADCnt[0]++;
-
-		if (tmpSetADCnt[0] >= 10)
-		{
-			stApl[0].SetA = (unsigned int)(tmpSumSet[0] / tmpSetADCnt[0]);
-			tmpSetADCnt[0] = 0;
-			tmpSumSet[0] = 0;
-		}			
-	}
+	static unsigned long int Sum = 0;
+	static unsigned int 	 Cnt = 0;
 	
-	if (arIs_AdUpd[1])
+	if (arIs_AdUpd[CurDayNight])
 	{
-		arIs_AdUpd[1] = FALSE;
+		arIs_AdUpd[CurDayNight] = FALSE;
 		
-		tmpSumSet_1 = tmpSumSet_1 + (unsigned long int)arInPutAD[1];
-		tmpSetADCnt_1++;
+		Sum = Sum + (unsigned long int)arInPutAD[CurDayNight];
+		Cnt++;
 
-		if (tmpSetADCnt_1 >= 10)
+		if (Cnt >= 10)
 		{
-			stApl[1].SetA = (unsigned int)(tmpSumSet_1 / tmpSetADCnt_1);
-			tmpSetADCnt_1 = 0;
-			tmpSumSet_1 = 0;
-		}			
-	}
-	
-	if (arIs_AdUpd[2])
-	{
-		arIs_AdUpd[2] = FALSE;
-		
-		tmpSumSet_2 = tmpSumSet_2 + (unsigned long int)arInPutAD[2];
-		tmpSetADCnt_2++;
-
-		if (tmpSetADCnt_2 >= 10)
-		{
-			stApl[2].SetA = (unsigned int)(tmpSumSet_2 / tmpSetADCnt_2);
-			tmpSetADCnt_2 = 0;
-			tmpSumSet_2 = 0;
+			stApl[CurDayNight].SetA = (unsigned int)(Sum / Cnt);
+			Sum = 0;
+			Cnt = 0;
 		}			
 	}	
-
-	
 }
 
 // 셋팅 스위치 눌렀을 때 APL 램프 셋팅 
@@ -904,8 +875,9 @@ void main(void)
         }
 
 		// AD 처리 
-        if(IsGet_InPutAd(arInPutAD, arIs_AdUpd, AdChSel))
+        if(IsGet_InPutAd(arInPutAD, arIs_AdUpd, AdChSel)) // input AD 값 얻음.
         {
+			// 채널 변경 	
 			if(bSetSwPushOK)	AdChSel = ChangeAdChSel(AdChSel, CurDayNight);
 			else				AdChSel = ChangeAdChSel(AdChSel, 3);	
 			Set_AdCh(AdChSel);
@@ -916,18 +888,12 @@ void main(void)
 		// AMP Lamp 출력 처리 
 		if (bSetSwPushOK)
 		{
-			GetSetAD();
+			GetSetAD(CurDayNight);
 			SetApaLamp();		
 		}
 		else
 		{
-			ApaLampOnOff();
-			tmpSumSet[0] = 0;
-			tmpSetADCnt[0] = 0;
-			tmpSumSet_1 = 0;
-			tmpSetADCnt_1 = 0;
-			tmpSumSet_2 = 0;
-			tmpSetADCnt_2 = 0;			
+			ApaLampOnOff();		
 		}
     }
 }
