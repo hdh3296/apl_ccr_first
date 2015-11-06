@@ -424,23 +424,16 @@ void  InitAD(void)
     ADIF = 0; // A/D Converter Interrupt Flag bit / 0 = The A/D conversion is not complete
 
     AdCurValue = 0;
-    InPutAD = 0;
     AdCnt = 0;
 
     TSB.bAdInterrupt = 0;
-    TSB.bAdSave = 0;
+    TSB.bAdSave = FALSE;
 
-    bAn0_Updated = 0;
-    bAn1_Updated = 0;
-    bAn2_Updated = 0;
-    bAn3_Updated = 0;
-    bAn4_Updated = 0;
-
-    AdSel = 0;
+    AdChSel = 0;
 }
 
 
-void SelChannel(UCHAR AdSel)
+void Set_AdCh(UCHAR AdSel)
 {
 	switch (AdSel)
 	{
@@ -484,56 +477,43 @@ void SelChannel(UCHAR AdSel)
 }
 
 
-void GetChADVal(UINT InPutAD)
-{
-	ADValue[AdSel] = InPutAD; 
-	
+
+UCHAR ChangeAdChSel(UCHAR AdSel, tag_CurDay CurDayNight)
+{	
     switch (AdSel)
     {
     case 0: // AN0, 낮 
-        bAn0_Updated = TRUE; 
         AdSel = 3;
         break;
     case 1: // AN1, 저녘 
-        bAn1_Updated = TRUE;
         AdSel = 3;
         break;
-    case 2: // AN2, 밤
-        bAn2_Updated = TRUE; 
+    case 2: // AN2, 밤 
         AdSel = 3;
         break;
     case 3: // AN3, A_IN
-        bAn3_Updated = TRUE;
         AdSel = 4;
         break;
-    case 4: // AN4, V_IN
-        bAn4_Updated = TRUE;        
-        if (bSetSwPushOK)
-        {
-			if (CurDayNight == DAY)				AdSel = 0;
-			else if (CurDayNight == EVENING)	AdSel = 1;
-			else if (CurDayNight == NIGHT)		AdSel = 2;
-			else								AdSel = 3;						
-        }	
-		else
-		{	
-			AdSel = 3;
-		}
+    case 4: // AN4, V_IN      
+		AdSel = CurDayNight;					
         break;
     default:
 		AdSel = 3;		        
         break;
     }
-	SelChannel(AdSel);
-
+	return AdSel;
 }
 
 
-void	CalcuAd(void)
+
+bit	IsGet_InPutAd(UINT* InPutAD, UCHAR* bAD_Updated, UCHAR AdSel)
 {
     unsigned long int tmpad;
     unsigned int 	itmpad;
-
+	static bit bAdSave;
+	unsigned int	AvrAD;
+	
+	bAdSave = FALSE;
     if (TSB.bAdInterrupt)
     {
         TSB.bAdInterrupt = FALSE;
@@ -554,21 +534,24 @@ void	CalcuAd(void)
 			{
 				tmpad = SumAD / AdCnt;
 				tmpad = (tmpad * 1000) / 192;	//204
-				InPutAD = (unsigned int)tmpad;
+				AvrAD = (unsigned int)tmpad;
 			}
 			else
 			{
-				InPutAD = 0;
+				AvrAD = 0;
 			}
 			
-			GetChADVal(InPutAD);
+			InPutAD[AdSel] = AvrAD;
+			bAD_Updated[AdSel] = TRUE;
+			
             SumAD = 0;
             AdCnt = 0;
-            
-            TSB.bAdSave = TRUE;
+			bAdSave = TRUE;
         }
         GODONE = TRUE;	//AD (Because.....Auto GODONE = 0)
     }
+
+	return bAdSave;
 }
 
 
@@ -746,46 +729,46 @@ unsigned char GetDayEveningNight(void)
 
 void GetSetAD(void)
 {
-	if(bAn0_Updated)
+	if (arIs_AdUpd[0])
 	{
-		bAn0_Updated = FALSE;
+		arIs_AdUpd[0] = FALSE;
 		
-		tmpSumSet[0] = tmpSumSet[0] + (unsigned long int)ADValue[0];
+		tmpSumSet[0] = tmpSumSet[0] + (unsigned long int)arInPutAD[0];
 		tmpSetADCnt[0]++;
 
 		if (tmpSetADCnt[0] >= 10)
 		{
-			FinalAD.SetA0 = (unsigned int)(tmpSumSet[0] / tmpSetADCnt[0]);
+			stApl[0].SetA = (unsigned int)(tmpSumSet[0] / tmpSetADCnt[0]);
 			tmpSetADCnt[0] = 0;
 			tmpSumSet[0] = 0;
 		}			
 	}
 	
-	if(bAn1_Updated)
+	if (arIs_AdUpd[1])
 	{
-		bAn1_Updated = FALSE;
+		arIs_AdUpd[1] = FALSE;
 		
-		tmpSumSet_1 = tmpSumSet_1 + (unsigned long int)ADValue[1];
+		tmpSumSet_1 = tmpSumSet_1 + (unsigned long int)arInPutAD[1];
 		tmpSetADCnt_1++;
 
 		if (tmpSetADCnt_1 >= 10)
 		{
-			FinalAD.SetA1 = (unsigned int)(tmpSumSet_1 / tmpSetADCnt_1);
+			stApl[1].SetA = (unsigned int)(tmpSumSet_1 / tmpSetADCnt_1);
 			tmpSetADCnt_1 = 0;
 			tmpSumSet_1 = 0;
 		}			
 	}
 	
-	if(bAn2_Updated)
+	if (arIs_AdUpd[2])
 	{
-		bAn2_Updated = FALSE;
+		arIs_AdUpd[2] = FALSE;
 		
-		tmpSumSet_2 = tmpSumSet_2 + (unsigned long int)ADValue[2];
+		tmpSumSet_2 = tmpSumSet_2 + (unsigned long int)arInPutAD[2];
 		tmpSetADCnt_2++;
 
 		if (tmpSetADCnt_2 >= 10)
 		{
-			FinalAD.SetA2 = (unsigned int)(tmpSumSet_2 / tmpSetADCnt_2);
+			stApl[2].SetA = (unsigned int)(tmpSumSet_2 / tmpSetADCnt_2);
 			tmpSetADCnt_2 = 0;
 			tmpSumSet_2 = 0;
 		}			
@@ -797,17 +780,17 @@ void GetSetAD(void)
 // 셋팅 스위치 눌렀을 때 APL 램프 셋팅 
 void SetApaLamp(void)
 {	
-	if (bAn3_Updated)
+	if (arIs_AdUpd[3])
 	{
-		FinalAD.A_IN = ADValue[3];
-		bAn3_Updated = FALSE;	
+		stApl[0].A_IN = arInPutAD[3];
+		arIs_AdUpd[3] = FALSE;	
 	
-		if (CurDayNight == DAY) 			SetAVoltage = FinalAD.SetA0;
-		else if (CurDayNight == EVENING) 	SetAVoltage = FinalAD.SetA1;
-		else if (CurDayNight == NIGHT) 		SetAVoltage = FinalAD.SetA2;
+		if (CurDayNight == DAY) 			SetAVoltage = stApl[0].SetA;
+		else if (CurDayNight == EVENING) 	SetAVoltage = stApl[1].SetA;
+		else if (CurDayNight == NIGHT) 		SetAVoltage = stApl[2].SetA;
 		else	SetAVoltage = 0;
 	
-		DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, FinalAD.A_IN, CurDayNight);
+		DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, stApl[0].A_IN, CurDayNight);
 		
 	}
 	PwmOut(DutyCycle);
@@ -825,11 +808,11 @@ void ApaLampOnOff(void)
 			StartTimer = 0;
 	
 			if (CurDayNight == DAY)
-				ReadVal(&SavedDutyCycle1, &SavedSetA1_Volt, Saved1Buf, &FinalAD.SetA0);
+				ReadVal(&SavedDutyCycle1, &SavedSetA1_Volt, Saved1Buf, &stApl[0].SetA);
 			else if (CurDayNight == EVENING)
-				ReadVal(&SavedDutyCycle2, &SavedSetA2_Volt, Saved2Buf, &FinalAD.SetA1);
+				ReadVal(&SavedDutyCycle2, &SavedSetA2_Volt, Saved2Buf, &stApl[1].SetA);
 			else if (CurDayNight == NIGHT)
-				ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &FinalAD.SetA2);
+				ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &stApl[2].SetA);
 			else
 				DutyCycle = 0x0;
 		}
@@ -837,17 +820,17 @@ void ApaLampOnOff(void)
 		{
 			if (StartTimer >= 100)
 			{
-				if (bAn3_Updated)
+				if (arIs_AdUpd[3])
 				{
-					FinalAD.A_IN = ADValue[3];
-					bAn3_Updated = FALSE;
+					stApl[0].A_IN = arInPutAD[3];
+					arIs_AdUpd[3] = FALSE;
 	
-					if (CurDayNight == DAY) SetAVoltage = FinalAD.SetA0;
-					else if (CurDayNight == EVENING) SetAVoltage = FinalAD.SetA1;
-					else if (CurDayNight == NIGHT) SetAVoltage = FinalAD.SetA2;
+					if (CurDayNight == DAY) SetAVoltage = stApl[0].SetA;
+					else if (CurDayNight == EVENING) SetAVoltage = stApl[1].SetA;
+					else if (CurDayNight == NIGHT) SetAVoltage = stApl[2].SetA;
 					else	SetAVoltage = 0;
 	
-					DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, FinalAD.A_IN, CurDayNight);
+					DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, stApl[0].A_IN, CurDayNight);
 				}
 			}
 		}
@@ -885,11 +868,11 @@ void main(void)
     {
         CurDayNight = GetDayEveningNight(); // NONE, DAY , EVENING , NIGHT 값 저장
         if (CurDayNight == DAY)
-            ReadVal(&SavedDutyCycle1, &SavedSetA1_Volt, Saved1Buf, &FinalAD.SetA0);
+            ReadVal(&SavedDutyCycle1, &SavedSetA1_Volt, Saved1Buf, &stApl[0].SetA);
         else if (CurDayNight == EVENING)
-            ReadVal(&SavedDutyCycle2, &SavedSetA2_Volt, Saved2Buf, &FinalAD.SetA1);
+            ReadVal(&SavedDutyCycle2, &SavedSetA2_Volt, Saved2Buf, &stApl[1].SetA);
         else if (CurDayNight == NIGHT)
-            ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &FinalAD.SetA2);
+            ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &stApl[2].SetA);
         else
             DutyCycle = 0x0;
 
@@ -915,13 +898,26 @@ void main(void)
         {
             bSetSw_UpEdge = FALSE;
 
-            if (CurDayNight == DAY) WriteVal(DutyCycle, FinalAD.SetA0, Saved1Buf);
-            else if (CurDayNight == EVENING) WriteVal(DutyCycle, FinalAD.SetA1, Saved2Buf);
-            else if (CurDayNight == NIGHT) WriteVal(DutyCycle, FinalAD.SetA2, Saved3Buf);
+            if (CurDayNight == DAY) WriteVal(DutyCycle, stApl[0].SetA, Saved1Buf);
+            else if (CurDayNight == EVENING) WriteVal(DutyCycle, stApl[1].SetA, Saved2Buf);
+            else if (CurDayNight == NIGHT) WriteVal(DutyCycle, stApl[2].SetA, Saved3Buf);
         }
 
 
-        CalcuAd();		
+        if(IsGet_InPutAd(arInPutAD, arIs_AdUpd, AdChSel))
+        {
+			if (bSetSwPushOK)
+			{
+				AdChSel = ChangeAdChSel(AdChSel, CurDayNight);
+				
+			}
+			else
+			{
+				AdChSel = ChangeAdChSel(AdChSel, 3);
+			}
+			Set_AdCh(AdChSel);
+        }
+		
 // Set1 에 대해서만 일단 적용 하였다. 				
 		if (bSetSwPushOK)
 		{

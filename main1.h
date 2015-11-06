@@ -184,19 +184,12 @@ bit bSetSw_UpEdge;
 typedef enum{DAY = 0, EVENING = 1, NIGHT = 2, NONE = 3} tag_CurDay;
 tag_CurDay	CurDayNight;
 
+
 unsigned int BeginTimer = 0;
 
 
 
-
-
-bit	bAn0_Updated = 0;
-bit	bAn1_Updated = 0;
-bit	bAn2_Updated = 0;
-bit	bAn3_Updated = 0;
-bit	bAn4_Updated = 0;
-
-unsigned char     AdSel;
+unsigned char     AdChSel;
 unsigned long int SumAD = 0;
 
 unsigned long int tmpSumSet_1 = 0;
@@ -236,7 +229,9 @@ unsigned int  SavedSetA3_Volt = 0;
 #define ADIntFlag			ADIF
 
 // 5000이면 5V이다.
-unsigned int ADValue[5] = {0,}; // 각 채널에서 읽어드린 AD 값 
+unsigned int arInPutAD[5] = {0,}; // 각 채널에서 읽어드린 AD 값 
+UCHAR arIs_AdUpd[5] = {0,};
+
 
 
 typedef struct 
@@ -244,8 +239,9 @@ typedef struct
 	unsigned int SetA;
 	unsigned int A_IN;
 	unsigned int V_IN;
+
 }tag_Apl;
-tag_Apl		sApl[4] = {
+tag_Apl		stApl[4] = {
 					{0,},
 					{0,},
 					{0,},
@@ -253,21 +249,13 @@ tag_Apl		sApl[4] = {
 			};
 
 
-typedef struct struct_FinalAD
-{
-	unsigned int SetA0;
-	unsigned int SetA1;
-	unsigned int SetA2;
-	unsigned int A_IN ;
-	unsigned int V_IN ;	
-}sFinalAD;
-sFinalAD	FinalAD = {0};
+
 
 
 unsigned int SetAVoltage = 0;
 
 
-unsigned int	InPutAD;
+
 unsigned int	AdCurValue;
 unsigned int	AdCnt;
 unsigned int	tmpSetADCnt_1;
@@ -290,10 +278,12 @@ volatile struct TmpStatusBit   TSB;
 
 
 
-extern void	CalcuAd(void);
+
+extern bit IsGet_InPutAd(UINT*, UCHAR*, UCHAR);
 extern void SetApaLamp(void);
 extern void ApaLampOnOff(void);
-extern void GetChADVal(UINT InPutAD);
 extern void GetSetAD(void);
-extern void SelChannel(UCHAR AdSel);
+extern void Set_AdCh(UCHAR);
+UCHAR ChangeAdChSel(UCHAR, tag_CurDay);
+
 
