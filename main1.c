@@ -478,7 +478,7 @@ void Set_AdCh(UCHAR AdSel)
 
 
 
-UCHAR ChangeAdChSel(UCHAR AdSel, tag_CurDay CurDayNight)
+UCHAR ChangeAdChSel(UCHAR AdSel, tag_CurDay ch)
 {	
     switch (AdSel)
     {
@@ -495,7 +495,7 @@ UCHAR ChangeAdChSel(UCHAR AdSel, tag_CurDay CurDayNight)
         AdSel = 4;
         break;
     case 4: // AN4, V_IN      
-		AdSel = CurDayNight;					
+		AdSel = ch;					
         break;
     default:
 		AdSel = 3;		        
@@ -510,10 +510,8 @@ bit	IsGet_InPutAd(UINT* InPutAD, UCHAR* bAD_Updated, UCHAR AdSel)
 {
     unsigned long int tmpad;
     unsigned int 	itmpad;
-	static bit bAdSave;
 	unsigned int	AvrAD;
 	
-	bAdSave = FALSE;
     if (TSB.bAdInterrupt)
     {
         TSB.bAdInterrupt = FALSE;
@@ -546,12 +544,12 @@ bit	IsGet_InPutAd(UINT* InPutAD, UCHAR* bAD_Updated, UCHAR AdSel)
 			
             SumAD = 0;
             AdCnt = 0;
-			bAdSave = TRUE;
+			return TRUE;
         }
-        GODONE = TRUE;	//AD (Because.....Auto GODONE = 0)
+		
+        GODONE = 1;	//AD (Because.....Auto GODONE = 0)
     }
-
-	return bAdSave;
+	return FALSE;
 }
 
 
@@ -860,9 +858,9 @@ void main(void)
     InitPwm();
     ei();
 
-    GODONE = TRUE;	// A/D Conversion Status bit
-    TMR0IE = TRUE;
-    SWDTEN = TRUE;  // Software Controlled Watchdog Timer Enable bit / 1 = Watchdog Timer is on
+    GODONE = 1;	// A/D Conversion Status bit
+    TMR0IE = 1;
+    SWDTEN = 1;  // Software Controlled Watchdog Timer Enable bit / 1 = Watchdog Timer is on
 
     do
     {
@@ -892,7 +890,9 @@ void main(void)
     {
         CLRWDT();
 
-        CurDayNight = GetDayEveningNight(); // NONE, DAY , EVENING , NIGHT 값 저장
+		// NONE, DAY , EVENING , NIGHT 값 저장
+        CurDayNight = GetDayEveningNight(); 
+        
         // 셋업 스위치 누르고 뗐을 때 !
         if (IsSetSw_UpEdge())
         {
@@ -903,26 +903,21 @@ void main(void)
             else if (CurDayNight == NIGHT) WriteVal(DutyCycle, stApl[2].SetA, Saved3Buf);
         }
 
-
+		// AD 처리 
         if(IsGet_InPutAd(arInPutAD, arIs_AdUpd, AdChSel))
         {
-			if (bSetSwPushOK)
-			{
-				AdChSel = ChangeAdChSel(AdChSel, CurDayNight);
-				
-			}
-			else
-			{
-				AdChSel = ChangeAdChSel(AdChSel, 3);
-			}
+			if(bSetSwPushOK)	AdChSel = ChangeAdChSel(AdChSel, CurDayNight);
+			else				AdChSel = ChangeAdChSel(AdChSel, 3);	
 			Set_AdCh(AdChSel);
+			GODONE = 1;
         }
 		
-// Set1 에 대해서만 일단 적용 하였다. 				
+// Set1 에 대해서만 일단 적용 하였다. 
+		// AMP Lamp 출력 처리 
 		if (bSetSwPushOK)
 		{
 			GetSetAD();
-			SetApaLamp();	
+			SetApaLamp();		
 		}
 		else
 		{
