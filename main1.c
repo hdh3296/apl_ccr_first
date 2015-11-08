@@ -583,7 +583,7 @@ void PwmOut(unsigned int DutyCycle)
 
 
 
-void WriteVal(unsigned int DutiCycle, unsigned int SetAVoltage, volatile const unsigned char* DestBuf)
+void WriteVal(UINT DutiCycle, UINT SetAVoltage, volatile const UCHAR* DestBuf)
 {
     unsigned char SrcBuf[4];
 
@@ -595,24 +595,20 @@ void WriteVal(unsigned int DutiCycle, unsigned int SetAVoltage, volatile const u
     flash_write((far unsigned char *)SrcBuf, 4, (far unsigned char *)DestBuf);
 }
 
-void ReadVal(unsigned int* pSavedDutyCycle, unsigned int* pSavedSetA_Volt,
-             volatile const unsigned char* SavedBuf, unsigned int* pSetA_Volt)
+void ReadVal(volatile const UCHAR* SavedBuf, UINT* pSetA_Volt, UINT* pDutyCycle)
 {
     unsigned int temp;
 
     temp = 0x0000;
     temp = SavedBuf[1];
     temp = temp << 8;
-    *pSavedDutyCycle = temp | ((unsigned int)SavedBuf[0] & 0x00ff);
-    DutyCycle = *pSavedDutyCycle;
-	DutyCycle = DutyCycle + 5;
-//	DutyCycle = (DutyCycle/100)*2 + DutyCycle;
+    *pDutyCycle = temp | ((unsigned int)SavedBuf[0] & 0x00ff);
+	*pDutyCycle = *pDutyCycle + 5;
 
     temp = 0x0000;
     temp = SavedBuf[3];
     temp = temp << 8;
-    *pSavedSetA_Volt = temp | ((unsigned int)SavedBuf[2] & 0x00ff);
-    *pSetA_Volt = *pSavedSetA_Volt; // 주간 셋팅 값
+    *pSetA_Volt = temp | ((unsigned int)SavedBuf[2] & 0x00ff);
 }
 
 
@@ -777,14 +773,10 @@ void OnOffAplLamp(void)
 			bAgoBlkLedOff = FALSE;
 			StartTimer = 0;
 	
-			if (CurDayNight == DAY)
-				ReadVal(&SavedDutyCycle1, &SavedSetA1_Volt, Saved1Buf, &stApl[0].SetA);
-			else if (CurDayNight == EVENING)
-				ReadVal(&SavedDutyCycle2, &SavedSetA2_Volt, Saved2Buf, &stApl[1].SetA);
-			else if (CurDayNight == NIGHT)
-				ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &stApl[2].SetA);
+			if (CurDayNight == NONE)
+            	DutyCycle = 0x0;
 			else
-				DutyCycle = 0x0;
+				ReadVal((arSavedBuf + (CurDayNight*4)), &stApl[CurDayNight].SetA, &DutyCycle);
 		}
 		else if (CurDayNight != NONE)
 		{
@@ -818,6 +810,22 @@ void OnOffAplLamp(void)
 
 
 
+void StartAplLamp(void)
+{	
+    do
+    {
+        CurDayNight = GetDayEveningNight(); // NONE, DAY , EVENING , NIGHT 값 저장
+        if (CurDayNight == NONE)
+            DutyCycle = 0x0;
+		else
+			ReadVal((arSavedBuf + (CurDayNight*4)), &stApl[CurDayNight].SetA, &DutyCycle);
+
+        _LAMP_ON = TRUE;
+        PwmOut(DutyCycle);
+        CLRWDT();
+    }
+    while (BeginTimer < 100);
+}
 
 
 void main(void)
@@ -834,23 +842,7 @@ void main(void)
     TMR0IE = 1;
     SWDTEN = 1;  // Software Controlled Watchdog Timer Enable bit / 1 = Watchdog Timer is on
 
-    do
-    {
-        CurDayNight = GetDayEveningNight(); // NONE, DAY , EVENING , NIGHT 값 저장
-        if (CurDayNight == DAY)
-            ReadVal(&SavedDutyCycle1, &SavedSetA1_Volt, Saved1Buf, &stApl[0].SetA);
-        else if (CurDayNight == EVENING)
-            ReadVal(&SavedDutyCycle2, &SavedSetA2_Volt, Saved2Buf, &stApl[1].SetA);
-        else if (CurDayNight == NIGHT)
-            ReadVal(&SavedDutyCycle3, &SavedSetA3_Volt, Saved3Buf, &stApl[2].SetA);
-        else
-            DutyCycle = 0x0;
-
-        _LAMP_ON = TRUE;
-        PwmOut(DutyCycle);
-        CLRWDT();
-    }
-    while (BeginTimer < 100);
+	StartAplLamp();
 
     bSetSw_UpEdge = FALSE;
     bSetSwPushOK = FALSE;
@@ -862,17 +854,15 @@ void main(void)
     {
         CLRWDT();
 
-		// NONE, DAY , EVENING , NIGHT 값 저장
-        CurDayNight = GetDayEveningNight(); 
+		
+        CurDayNight = GetDayEveningNight(); // NONE, DAY , EVENING , NIGHT 값 가져온다.
+		bSetSw_UpEdge = IsSetSw_UpEdge(); // 스위치 엣지, bSetSwPushOK 여부 가져온다.
         
-        // 셋업 스위치 누르고 뗐을 때 !
-        if (IsSetSw_UpEdge())
+        // 셋업 스위치 누르고 뗐을 때 ! 현재 DutyCycle, SetA값 저장 !
+        if (bSetSw_UpEdge)
         {
             bSetSw_UpEdge = FALSE;
-
-            if (CurDayNight == DAY) WriteVal(DutyCycle, stApl[0].SetA, Saved1Buf);
-            else if (CurDayNight == EVENING) WriteVal(DutyCycle, stApl[1].SetA, Saved2Buf);
-            else if (CurDayNight == NIGHT) WriteVal(DutyCycle, stApl[2].SetA, Saved3Buf);
+            WriteVal(DutyCycle, stApl[CurDayNight].SetA, (arSavedBuf + (CurDayNight*4)));
         }
 
 		// AD 처리 
@@ -885,7 +875,6 @@ void main(void)
 			GODONE = 1;
         }
 		
-// Set1 에 대해서만 일단 적용 하였다. 
 		// AMP Lamp 출력 처리 
 		if (bSetSwPushOK)
 		{

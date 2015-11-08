@@ -197,17 +197,8 @@ unsigned char 	PERIOD;
 unsigned int 	DutyCycle = 0;
 #define DUTI_MAX 0x3ff // 1023
 
-#define WRSIZE	4
-volatile const unsigned char  Saved1Buf[WRSIZE] = {0, };
-volatile const unsigned char  Saved2Buf[WRSIZE] = {0, };
-volatile const unsigned char  Saved3Buf[WRSIZE] = {0, };
 
-unsigned int  SavedDutyCycle1 = 0;
-unsigned int  SavedSetA1_Volt = 0;
-unsigned int  SavedDutyCycle2 = 0;
-unsigned int  SavedSetA2_Volt = 0;
-unsigned int  SavedDutyCycle3 = 0;
-unsigned int  SavedSetA3_Volt = 0;
+
 
 #define	A_SET_V_MAX 5000 // mV
 #define	A_SET_V_MIN 0
@@ -229,14 +220,14 @@ const long double Multip[] = {SET_AMP_PER_VOLT1, SET_AMP_PER_VOLT2, SET_AMP_PER_
 unsigned int arInPutAD[5] = {0,}; // 각 채널에서 읽어드린 AD 값 
 UCHAR arIs_AdUpd[5] = {0,};
 
-
+#define WRSIZE	12
+volatile const unsigned char  arSavedBuf[WRSIZE] = {0, };
 
 typedef struct 
 {
 	unsigned int SetA;
 	unsigned int A_IN;
 	unsigned int V_IN;
-
 }tag_Apl;
 tag_Apl		stApl[3] = {
 					{0,},	// Set0
@@ -280,6 +271,7 @@ extern void SetAplLamp(tag_CurDay);
 extern void OnOffAplLamp(void);
 extern UINT GetSetAD(tag_CurDay);
 extern void Set_AdCh(UCHAR);
-UCHAR ChangeAdChSel(UCHAR, tag_CurDay);
+extern UCHAR ChangeAdChSel(UCHAR, tag_CurDay);
+extern void StartAplLamp(void);
 
 
