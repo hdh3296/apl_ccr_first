@@ -165,7 +165,7 @@ unsigned       int        Mes;
 unsigned int indayHighTimer = 0;
 unsigned int AnalogValidTime = 0;
 unsigned int StartTimer;
-bit bAgoBlkLedOff;
+
 unsigned char InBlinkTimer = 0;
 unsigned char InDayTimer = 0;
 unsigned char InNightTimer = 0;
@@ -217,7 +217,8 @@ const long double Multip[] = {SET_AMP_PER_VOLT1, SET_AMP_PER_VOLT2, SET_AMP_PER_
 #define ADIntFlag			ADIF
 
 // 5000이면 5V이다.
-unsigned int arInPutAD[5] = {0,}; // 각 채널에서 읽어드린 AD 값 
+#define ADCH_MAX	5
+unsigned int arInPutAD[ADCH_MAX] = {0,}; // 각 채널에서 읽어드린 AD 값 
 UCHAR arIs_AdUpd[5] = {0,};
 
 #define WRSIZE	12
@@ -236,19 +237,11 @@ tag_Apl		stApl[3] = {
 unsigned int CurA_IN;
 unsigned int CurV_IN;
 
-
-
-unsigned int SetAVoltage = 0;
-
-
-
 unsigned int	AdCurValue;
 unsigned int	AdCnt;
 unsigned int	tmpSetADCnt_1;
 unsigned int	tmpSetADCnt_2;
 unsigned int 	tmpSetADCnt[3] = {0,}; 
-
-
 
 
 volatile struct TmpStatusBit
@@ -261,14 +254,14 @@ unsigned char NCFlag					: 5;
 volatile struct TmpStatusBit   TSB;
 
 
+bit bCurA_IN_Upd;
 
 
 
-
-extern bit IsGet_InPutAd(UINT*, UCHAR*, UCHAR);
+extern bit IsUdtAd(UINT*, UCHAR*, UCHAR);
 extern void SetAplLamp(tag_CurDay);
-extern void OnOffAplLamp(void);
-extern UINT GetSetAD(tag_CurDay);
+extern void OnOffAplLamp(tag_CurDay);
+extern void GetMyAD(void);
 extern void Set_AdCh(UCHAR);
 extern UCHAR ChangeAdChSel(UCHAR, tag_CurDay);
 extern void StartAplLamp(void);

@@ -506,7 +506,7 @@ UCHAR ChangeAdChSel(UCHAR AdSel, tag_CurDay ch)
 
 
 
-bit	IsGet_InPutAd(UINT* arInPutAD, UCHAR* arIs_AdUpd, UCHAR AdChSel)
+bit	IsUdtAd(UINT* arInPutAD, UCHAR* arIs_AdUpd, UCHAR AdChSel)
 {
     unsigned long int tmpad;
     unsigned int 	itmpad;
@@ -722,71 +722,81 @@ unsigned char GetDayEveningNight(void)
 }
 
 
-UINT GetSetAD(tag_CurDay CurDayNight)
+void GetMyAD(void)
 {
-	static unsigned long int Sum = 0;
-	static unsigned int 	 Cnt = 0;
-	static unsigned int 	 SetA = 0;
+	UCHAR ch;
 
-	if(CurDayNight == NONE)	return 0; 
-	
-	if (arIs_AdUpd[CurDayNight])
+	static unsigned long int Sum[3] = 0;
+	static unsigned int 	 Cnt[3] = 0;
+
+	for (ch=0; ch<ADCH_MAX; ch++)
 	{
-		arIs_AdUpd[CurDayNight] = FALSE;
-		
-		Sum = Sum + (unsigned long int)arInPutAD[CurDayNight];
-		Cnt++;
-
-		if (Cnt >= 10)
+		if (arIs_AdUpd[ch])
 		{
-			SetA = (unsigned int)(Sum / Cnt);
-			Sum = 0;
-			Cnt = 0;
-		}			
-	}
+			switch (ch)
+			{
+			case 0:
+			case 1:
+			case 2:	
+				Sum[ch] = Sum[ch] + (unsigned long int)arInPutAD[ch];
+				Cnt[ch]++;
 
-	return	SetA; 
+				if (Cnt[ch] >= 10)
+				{
+					stApl[ch].SetA = (unsigned int)(Sum[ch] / Cnt[ch]);
+					Sum[ch] = 0;
+					Cnt[ch] = 0;
+				}
+				break;
+			case 3:
+				CurA_IN = arInPutAD[ch];
+				bCurA_IN_Upd = TRUE;
+				break;
+			case 4:
+				CurV_IN = arInPutAD[ch];
+				break;
+			default:
+				break;
+			}
+
+			for (ch=0; ch<ADCH_MAX; ch++)	
+				arIs_AdUpd[ch] = FALSE;
+			break;
+		}
+	}	
 }
 
 // 셋팅 스위치 눌렀을 때 APL 램프 셋팅 
 void SetAplLamp(tag_CurDay CurDayNight)
 {	
-	if (arIs_AdUpd[3])
+	if (bCurA_IN_Upd)
 	{
-		arIs_AdUpd[3] = FALSE;
-		CurA_IN = arInPutAD[3];
-	
-		DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN, CurDayNight);
-		
+		bCurA_IN_Upd = FALSE;	
+		DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN, CurDayNight);		
 	}
 	PwmOut(DutyCycle);
 	_LAMP_ON = TRUE; // LAMP ON		
 }
 
 
-void OnOffAplLamp(void)
+void OnOffAplLamp(tag_CurDay CurDayNight)
 {
+	static bit bStEnab;
+	
 	if ((IsInLED_ON(_IN_BLINK, &InBlinkTimer)) && (CurDayNight != NONE)) // Blink Led 가 On 일 때
 	{
-		if (bAgoBlkLedOff)
+		if (bStEnab)
 		{
-			bAgoBlkLedOff = FALSE;
+			bStEnab = FALSE;
 			StartTimer = 0;
 			ReadVal((arSavedBuf + (CurDayNight*4)), &stApl[CurDayNight].SetA, &DutyCycle);
 		}
-		else
+		else if (StartTimer >= 100)
 		{
-			if (StartTimer >= 100)
+			if (bCurA_IN_Upd)
 			{
-				if (arIs_AdUpd[3])
-				{
-					arIs_AdUpd[3] = FALSE;
-					CurA_IN = arInPutAD[3];
-	
-					SetAVoltage = stApl[CurDayNight].SetA;
-	
-					DutyCycle = GetDutyByCmp(DutyCycle, SetAVoltage, CurA_IN, CurDayNight);
-				}
+				bCurA_IN_Upd = FALSE;
+				DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN, CurDayNight);
 			}
 		}
 		PwmOut(DutyCycle);
@@ -794,10 +804,10 @@ void OnOffAplLamp(void)
 	}
 	else // Blink Led 가 Off 일 때
 	{
-		bAgoBlkLedOff = TRUE;
 		DutyCycle = 0;		
 		PwmOut(DutyCycle);
 		_LAMP_ON = FALSE; // LAMP OFF 
+		bStEnab = TRUE;
 	}
 }
 
@@ -842,8 +852,8 @@ void main(void)
     bSetSw_UpEdge = FALSE;
     bSetSwPushOK = FALSE;
     StartTimer = 0;
-    bAgoBlkLedOff = FALSE;
     bInBlinkLED = FALSE;
+	bCurA_IN_Upd = FALSE;
 
     while (1)
     {
@@ -861,25 +871,28 @@ void main(void)
         }
 
 		// AD 처리 
-        if(IsGet_InPutAd(arInPutAD, arIs_AdUpd, AdChSel)) // input AD 값 얻음.
+        if(IsUdtAd(arInPutAD, arIs_AdUpd, AdChSel)) // input AD 값 얻음.
         {
+			// 각 AD 값이 Updated 이면, 각 관련 변수에 저장 한다. 
+			GetMyAD();
+			
 			// 채널 변경 
 			ch = CurDayNight;
 			if(bSetSwPushOK)	AdChSel = ChangeAdChSel(AdChSel, ch);
 			else				AdChSel = ChangeAdChSel(AdChSel, 3);	
 			Set_AdCh(AdChSel);
+			
 			GODONE = 1;
         }
 		
 		// AMP Lamp 출력 처리 
 		if (bSetSwPushOK)
 		{
-			stApl[CurDayNight].SetA = GetSetAD(CurDayNight);
 			SetAplLamp(CurDayNight);		
 		}
 		else
 		{
-			OnOffAplLamp();		
+			OnOffAplLamp(CurDayNight);		
 		}
     }
 }
