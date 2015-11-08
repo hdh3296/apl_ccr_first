@@ -672,9 +672,9 @@ unsigned int GetDutyByCmp(unsigned int duty, unsigned int setVolt,
     if (AnalogValidTime > 20)
     {
         if (setVolt <= A_SET_V_MIN)
-            DutyCycle = 0;
+            duty = 0;
         if (setVolt >= A_SET_V_MAX)
-            DutyCycle = DUTI_MAX;
+            duty = DUTI_MAX;
     }
 
     return duty;
