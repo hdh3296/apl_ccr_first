@@ -553,23 +553,34 @@ bit	IsUdtAd(UINT* arInPutAD, UCHAR* arIs_AdUpd, UCHAR AdChSel)
 }
 
 
+// PWM Mode On
+void PwmOn(void)
+{
+	CCP1M0=1;
+	CCP1M1=1;
+	CCP1M2=1;
+	CCP1M3=1;
+}
 
-
+void PwmOff(void)
+{
+	CCP1M0=0;
+	CCP1M1=0;
+	CCP1M2=0;
+	CCP1M3=0;
+}
 
 void InitPwm(void)
 {
     unsigned char T2PreScale; //Timer2 Clock Prescale Select bits
 
-    TMR2IE = FALSE;
-    TMR2IF = FALSE;
-    CCP1CON = 0x0C;	/* select PWM mode */
+	TMR2IE=0;
+	TMR2IP=0;
+	TMR2IF=0;
+	CCP1CON=0x0;	/* select PWM mode */
 
-    //PERIOD=124;
-    PERIOD = DUTI_MAX;
-    PR2 = PERIOD;					// update the PWM period 주기 레지스터
-
-    T2PreScale = 1;
-    T2CON = (0x04 + T2PreScale);
+	PR2 = 0xff; // update the PWM period 주기 레지스터		
+	T2CON = 0x06; // 프리스케일: 16x
 }
 
 void PwmOut(unsigned int DutyCycle)
@@ -847,6 +858,7 @@ void main(void)
     TMR0IE = 1;
     SWDTEN = 1;  // Software Controlled Watchdog Timer Enable bit / 1 = Watchdog Timer is on
 
+	PwmOn();
 	StartAplLamp();
 
     bSetSw_UpEdge = FALSE;
