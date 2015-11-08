@@ -640,19 +640,19 @@ bit IsSetSw_UpEdge(void)
 
 
 
-unsigned int GetDutyByCompareCurrent(unsigned int duty, unsigned int setVolt,
+unsigned int GetDutyByCmp(unsigned int duty, unsigned int setVolt,
                                      unsigned int inVolt, unsigned char CurDayNight)
 {
     long double Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
     long double In_Current;  // 변환된 입력 피드백 전류 값
     long double Offset;
-
-    if (CurDayNight == DAY) Set_Current = (long double)setVolt * SET_AMP_PER_VOLT1; // 166 x 4 = 664
-    else if (CurDayNight == EVENING) Set_Current = (long double)setVolt * SET_AMP_PER_VOLT2; // 166 x 4 = 664
-    else if (CurDayNight == NIGHT) Set_Current = (long double)setVolt * SET_AMP_PER_VOLT3; // 380 x 2 = 760
-    else Set_Current = 0;
+	
+	if(CurDayNight == NONE)	Set_Current = 0;
+	else					Set_Current = (long double)(setVolt * Multip[CurDayNight]); 
+	
     In_Current = (((long double)inVolt - 600) / 60) * 1000;  // (635 - 600)/60 * 1000 = 583
-    Offset = 100 - (Set_Current/20); // 오프셋 값
+    
+    Offset = 100 - (Set_Current / 20); // 오프셋 값    
     if(Offset == 0) Offset = 10;
 
     if (In_Current < Set_Current) // 760 > 583
@@ -665,6 +665,7 @@ unsigned int GetDutyByCompareCurrent(unsigned int duty, unsigned int setVolt,
     }
     else if (In_Current > Set_Current)
     {
+// 이 부분 추후 수정 해보자 ! 3/2 로 .... ??
 		Offset = Offset * 2;
         if (In_Current > (Set_Current + Offset))
         {
@@ -725,10 +726,13 @@ unsigned char GetDayEveningNight(void)
 }
 
 
-void GetSetAD(tag_CurDay CurDayNight)
+UINT GetSetAD(tag_CurDay CurDayNight)
 {
 	static unsigned long int Sum = 0;
 	static unsigned int 	 Cnt = 0;
+	static unsigned int 	 SetA = 0;
+
+	if(CurDayNight == NONE)	return 0; 
 	
 	if (arIs_AdUpd[CurDayNight])
 	{
@@ -739,27 +743,24 @@ void GetSetAD(tag_CurDay CurDayNight)
 
 		if (Cnt >= 10)
 		{
-			stApl[CurDayNight].SetA = (unsigned int)(Sum / Cnt);
+			SetA = (unsigned int)(Sum / Cnt);
 			Sum = 0;
 			Cnt = 0;
 		}			
-	}	
+	}
+
+	return	SetA; 
 }
 
 // 셋팅 스위치 눌렀을 때 APL 램프 셋팅 
-void SetApaLamp(void)
+void SetAplLamp(tag_CurDay CurDayNight)
 {	
 	if (arIs_AdUpd[3])
 	{
+		arIs_AdUpd[3] = FALSE;
 		stApl[0].A_IN = arInPutAD[3];
-		arIs_AdUpd[3] = FALSE;	
 	
-		if (CurDayNight == DAY) 			SetAVoltage = stApl[0].SetA;
-		else if (CurDayNight == EVENING) 	SetAVoltage = stApl[1].SetA;
-		else if (CurDayNight == NIGHT) 		SetAVoltage = stApl[2].SetA;
-		else	SetAVoltage = 0;
-	
-		DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, stApl[0].A_IN, CurDayNight);
+		DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, stApl[0].A_IN, CurDayNight);
 		
 	}
 	PwmOut(DutyCycle);
@@ -767,7 +768,7 @@ void SetApaLamp(void)
 }
 
 
-void ApaLampOnOff(void)
+void OnOffAplLamp(void)
 {
 	if ((IsInLED_ON(_IN_BLINK, &InBlinkTimer)) && (CurDayNight != NONE)) // Blink Led 가 On 일 때
 	{
@@ -791,15 +792,15 @@ void ApaLampOnOff(void)
 			{
 				if (arIs_AdUpd[3])
 				{
-					stApl[0].A_IN = arInPutAD[3];
 					arIs_AdUpd[3] = FALSE;
+					stApl[0].A_IN = arInPutAD[3];
 	
 					if (CurDayNight == DAY) SetAVoltage = stApl[0].SetA;
 					else if (CurDayNight == EVENING) SetAVoltage = stApl[1].SetA;
 					else if (CurDayNight == NIGHT) SetAVoltage = stApl[2].SetA;
 					else	SetAVoltage = 0;
 	
-					DutyCycle = GetDutyByCompareCurrent(DutyCycle, SetAVoltage, stApl[0].A_IN, CurDayNight);
+					DutyCycle = GetDutyByCmp(DutyCycle, SetAVoltage, stApl[0].A_IN, CurDayNight);
 				}
 			}
 		}
@@ -888,12 +889,12 @@ void main(void)
 		// AMP Lamp 출력 처리 
 		if (bSetSwPushOK)
 		{
-			GetSetAD(CurDayNight);
-			SetApaLamp();		
+			stApl[CurDayNight].SetA = GetSetAD(CurDayNight);
+			SetAplLamp(CurDayNight);		
 		}
 		else
 		{
-			ApaLampOnOff();		
+			OnOffAplLamp();		
 		}
     }
 }

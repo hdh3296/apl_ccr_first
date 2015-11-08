@@ -192,11 +192,6 @@ unsigned int BeginTimer = 0;
 unsigned char     AdChSel;
 unsigned long int SumAD = 0;
 
-unsigned long int tmpSumSet_1 = 0;
-unsigned long int tmpSumSet_2 = 0;
-unsigned long int tmpSumSet[3] = {0,};
-
-
 
 unsigned char 	PERIOD;
 unsigned int 	DutyCycle = 0;
@@ -226,6 +221,8 @@ unsigned int  SavedSetA3_Volt = 0;
 #define A_SET_A_MIN3 0
 #define SET_AMP_PER_VOLT3	((A_SET_A_MAX3 - A_SET_A_MIN3) / (A_SET_V_MAX - A_SET_V_MIN)) // 4
 
+const long double Multip[] = {SET_AMP_PER_VOLT1, SET_AMP_PER_VOLT2, SET_AMP_PER_VOLT3}; 
+
 #define ADIntFlag			ADIF
 
 // 5000이면 5V이다.
@@ -241,11 +238,10 @@ typedef struct
 	unsigned int V_IN;
 
 }tag_Apl;
-tag_Apl		stApl[4] = {
-					{0,},
-					{0,},
-					{0,},
-					{0,},
+tag_Apl		stApl[3] = {
+					{0,},	// Set0
+					{0,},	// Set1
+					{0,},	// Set2
 			};
 
 
@@ -280,9 +276,9 @@ volatile struct TmpStatusBit   TSB;
 
 
 extern bit IsGet_InPutAd(UINT*, UCHAR*, UCHAR);
-extern void SetApaLamp(void);
-extern void ApaLampOnOff(void);
-extern void GetSetAD(tag_CurDay);
+extern void SetAplLamp(tag_CurDay);
+extern void OnOffAplLamp(void);
+extern UINT GetSetAD(tag_CurDay);
 extern void Set_AdCh(UCHAR);
 UCHAR ChangeAdChSel(UCHAR, tag_CurDay);
 
