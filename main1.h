@@ -181,7 +181,7 @@ bit bSetSw_UpEdge;
 #define ON	1
 #define	OFF	0
 
-typedef enum{DAY = 0, EVENING = 1, NIGHT = 2, NONE = 3} tag_CurDay;
+typedef enum{DAY = 0, EVENING = 1, NIGHT = 2, NONE = 100} tag_CurDay;
 tag_CurDay	CurDayNight;
 
 
@@ -226,8 +226,6 @@ volatile const unsigned char  arSavedBuf[WRSIZE] = {0, };
 typedef struct 
 {
 	unsigned int SetA;
-	unsigned int A_IN;
-	unsigned int V_IN;
 }tag_Apl;
 tag_Apl		stApl[3] = {
 					{0,},	// Set0
@@ -235,7 +233,8 @@ tag_Apl		stApl[3] = {
 					{0,},	// Set2
 			};
 
-
+unsigned int CurA_IN;
+unsigned int CurV_IN;
 
 
 

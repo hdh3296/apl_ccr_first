@@ -506,7 +506,7 @@ UCHAR ChangeAdChSel(UCHAR AdSel, tag_CurDay ch)
 
 
 
-bit	IsGet_InPutAd(UINT* InPutAD, UCHAR* bAD_Updated, UCHAR AdSel)
+bit	IsGet_InPutAd(UINT* arInPutAD, UCHAR* arIs_AdUpd, UCHAR AdChSel)
 {
     unsigned long int tmpad;
     unsigned int 	itmpad;
@@ -539,8 +539,8 @@ bit	IsGet_InPutAd(UINT* InPutAD, UCHAR* bAD_Updated, UCHAR AdSel)
 				AvrAD = 0;
 			}
 			
-			InPutAD[AdSel] = AvrAD;
-			bAD_Updated[AdSel] = TRUE;
+			arInPutAD[AdChSel] = AvrAD;
+			arIs_AdUpd[AdChSel] = TRUE;
 			
             SumAD = 0;
             AdCnt = 0;
@@ -754,9 +754,9 @@ void SetAplLamp(tag_CurDay CurDayNight)
 	if (arIs_AdUpd[3])
 	{
 		arIs_AdUpd[3] = FALSE;
-		stApl[0].A_IN = arInPutAD[3];
+		CurA_IN = arInPutAD[3];
 	
-		DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, stApl[0].A_IN, CurDayNight);
+		DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN, CurDayNight);
 		
 	}
 	PwmOut(DutyCycle);
@@ -772,27 +772,20 @@ void OnOffAplLamp(void)
 		{
 			bAgoBlkLedOff = FALSE;
 			StartTimer = 0;
-	
-			if (CurDayNight == NONE)
-            	DutyCycle = 0x0;
-			else
-				ReadVal((arSavedBuf + (CurDayNight*4)), &stApl[CurDayNight].SetA, &DutyCycle);
+			ReadVal((arSavedBuf + (CurDayNight*4)), &stApl[CurDayNight].SetA, &DutyCycle);
 		}
-		else if (CurDayNight != NONE)
+		else
 		{
 			if (StartTimer >= 100)
 			{
 				if (arIs_AdUpd[3])
 				{
 					arIs_AdUpd[3] = FALSE;
-					stApl[0].A_IN = arInPutAD[3];
+					CurA_IN = arInPutAD[3];
 	
-					if (CurDayNight == DAY) SetAVoltage = stApl[0].SetA;
-					else if (CurDayNight == EVENING) SetAVoltage = stApl[1].SetA;
-					else if (CurDayNight == NIGHT) SetAVoltage = stApl[2].SetA;
-					else	SetAVoltage = 0;
+					SetAVoltage = stApl[CurDayNight].SetA;
 	
-					DutyCycle = GetDutyByCmp(DutyCycle, SetAVoltage, stApl[0].A_IN, CurDayNight);
+					DutyCycle = GetDutyByCmp(DutyCycle, SetAVoltage, CurA_IN, CurDayNight);
 				}
 			}
 		}
@@ -830,6 +823,8 @@ void StartAplLamp(void)
 
 void main(void)
 {
+	UCHAR ch;
+	
     di();
     Initial();
     Timer0Init();
@@ -868,8 +863,9 @@ void main(void)
 		// AD 처리 
         if(IsGet_InPutAd(arInPutAD, arIs_AdUpd, AdChSel)) // input AD 값 얻음.
         {
-			// 채널 변경 	
-			if(bSetSwPushOK)	AdChSel = ChangeAdChSel(AdChSel, CurDayNight);
+			// 채널 변경 
+			ch = CurDayNight;
+			if(bSetSwPushOK)	AdChSel = ChangeAdChSel(AdChSel, ch);
 			else				AdChSel = ChangeAdChSel(AdChSel, 3);	
 			Set_AdCh(AdChSel);
 			GODONE = 1;
