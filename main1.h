@@ -258,7 +258,7 @@ volatile struct TmpStatusBit   TSB;
 
 bit bCurA_IN_Upd;
 
-UINT StOnTime = 0;
+
 
 
 extern bit IsUdtAd(UINT*, UCHAR*, UCHAR);
@@ -268,5 +268,9 @@ extern void GetMyAD(void);
 extern void Set_AdCh(UCHAR);
 extern UCHAR ChangeAdChSel(UCHAR, tag_CurDay);
 extern void StartAplLamp(void);
+extern UINT AvrDutyCycle(UINT);
+extern UINT Get_StOnTime(void);
+extern long double GetOffSet(long double);
+
 
 

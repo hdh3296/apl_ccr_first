@@ -577,7 +577,8 @@ void InitPwm(void)
 	TMR2IE=0;
 	TMR2IP=0;
 	TMR2IF=0;
-	CCP1CON=0x0;	/* select PWM mode */
+	CCP1CON=0x0; //	 select PWM mode , PWM OFF
+	PwmOn(); // PWM ON	
 
 	// PR2 및 타이머2 프리스케일러 값이 커질수로 주기는 길어 진다. 
 	PR2 = 0xff; // update the PWM period 주기 레지스터 
@@ -647,20 +648,10 @@ bit IsSetSw_UpEdge(void)
 }
 
 
-
-unsigned int GetDutyByCmp(unsigned int duty, unsigned int setVolt,
-                                     unsigned int inVolt, unsigned char CurDayNight)
+long double GetOffSet(long double Set_Current)
 {
-    long double Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
-    long double In_Current;  // 변환된 입력 피드백 전류 값
-    long double Offset;
-	long double i;
+	long double Offset;
 	
-	if(CurDayNight == NONE)	Set_Current = 0;
-	else					Set_Current = (long double)(setVolt * Multip[CurDayNight]); 
-	
-    In_Current = (((long double)inVolt - 600) / 60) * 1000;  // (630 - 600)/60 * 1000 = 500 mA
-
 	if (bSetSwPushOK)
 	{
 		if (Set_Current > 1000)
@@ -685,8 +676,24 @@ unsigned int GetDutyByCmp(unsigned int duty, unsigned int setVolt,
 		}
 		if(Offset > 400)	Offset = 400;
 	}
-		
 
+	return Offset;
+}
+
+
+unsigned int GetDutyByCmp(unsigned int duty, unsigned int setVolt,
+                                     unsigned int inVolt, unsigned char CurDayNight)
+{
+    long double Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
+    long double In_Current;  // 변환된 입력 피드백 전류 값
+    long double Offset;
+	long double i;
+	
+	if(CurDayNight == NONE)	Set_Current = 0;
+	else					Set_Current = (long double)(setVolt * Multip[CurDayNight]); 
+	
+    In_Current = (((long double)inVolt - 600) / 60) * 1000;  // (630 - 600)/60 * 1000 = 500 mA
+	Offset = GetOffSet(Set_Current);	
 
     if (In_Current < Set_Current) 
     {
@@ -801,6 +808,23 @@ void GetMyAD(void)
 	}	
 }
 
+UINT Get_StOnTime(void)
+{
+	long double Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
+	static UINT StOnTime = 0;
+	
+	Set_Current = (long double)(stApl[CurDayNight].SetA * Multip[CurDayNight]); 
+	
+	if (Set_Current > 1000) 
+		StOnTime = 1;
+	else					
+		StOnTime = (UINT)(400 - (Set_Current / 10));	
+
+	return StOnTime;
+}
+
+
+
 // 셋팅 스위치 눌렀을 때 APL 램프 셋팅 
 void SetAplLamp(tag_CurDay CurDayNight)
 {	
@@ -818,7 +842,6 @@ void OnOffAplLamp(tag_CurDay CurDayNight)
 {
 	static bit bStEnab;
 	long double li;
-	long double Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
 	
 	if ((IsInLED_ON(_IN_BLINK, &InBlinkTimer)) && (CurDayNight != NONE)) // Blink Led 가 On 일 때
 	{
@@ -827,22 +850,10 @@ void OnOffAplLamp(tag_CurDay CurDayNight)
 			bStEnab = FALSE;
 			StartTimer = 0;
 			ReadVal((arSavedBuf + (CurDayNight*4)), &stApl[CurDayNight].SetA, &DutyCycle);
-
-			Set_Current = (long double)(stApl[CurDayNight].SetA * Multip[CurDayNight]); 
-			if (Set_Current > 1000)
-			{
-				StOnTime = 1;
-//				DutyCycle = DutyCycle + 2;
-			}
-			else
-			{
-				StOnTime = (UINT)(400 - (Set_Current / 10));	
-			}	
-			
 			PwmOut(DutyCycle);
-			_LAMP_ON = TRUE; // LAMP ON	
+			_LAMP_ON = TRUE; // LAMP ON				
 		}
-		else if (StartTimer >= StOnTime)
+		else if (StartTimer >= Get_StOnTime())
 		{
 			if (bCurA_IN_Upd)
 			{
@@ -882,12 +893,29 @@ void StartAplLamp(void)
     while (BeginTimer < 100);
 }
 
+UINT AvrDutyCycle(UINT DutyCycle)
+{
+	static unsigned long int DtSum = 0;
+	static unsigned int 	 DtCnt = 0;
+	static unsigned int 	DutyCycle_Avr = 0;
+	
+	DtSum = DtSum + (unsigned long int)DutyCycle;
+	DtCnt++;
+	if (DtCnt > 10)
+	{
+		DutyCycle_Avr = (unsigned int)(DtSum / DtCnt);
+
+		DtCnt = 0;	
+		DtSum = 0;
+	}
+
+	return DutyCycle_Avr;
+}
 
 void main(void)
 {
 	UCHAR ch;
-	static unsigned long int DtSum = 0;
-	static unsigned int 	 DtCnt = 0;	
+	
 	
     di();
     Initial();
@@ -901,7 +929,6 @@ void main(void)
     TMR0IE = 1;
     SWDTEN = 1;  // Software Controlled Watchdog Timer Enable bit / 1 = Watchdog Timer is on
 
-	PwmOn();
 	StartAplLamp();
 
     bSetSw_UpEdge = FALSE;
@@ -944,15 +971,7 @@ void main(void)
 		if (bSetSwPushOK)
 		{
 			SetAplLamp(CurDayNight);
-			DtSum = DtSum + (unsigned long int)DutyCycle;
-			DtCnt++;
-			if (DtCnt > 30)
-			{
-				DutyCycle_Avr = (unsigned int)(DtSum / DtCnt);
-			
-				DtCnt = 0;	
-				DtSum = 0;
-			}
+			DutyCycle_Avr = AvrDutyCycle(DutyCycle);
 		}
 		else
 		{
