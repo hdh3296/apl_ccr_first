@@ -579,8 +579,9 @@ void InitPwm(void)
 	TMR2IF=0;
 	CCP1CON=0x0;	/* select PWM mode */
 
-	PR2 = 0xff; // update the PWM period 주기 레지스터		
-	T2CON = 0x06; // 프리스케일: 16x
+	// PR2 및 타이머2 프리스케일러 값이 커질수로 주기는 길어 진다. 
+	PR2 = 0xff; // update the PWM period 주기 레지스터 
+	T2CON = 0x05; // 프리스케일: 4x , 값이 클 수록 주기가 길어진다. 
 }
 
 void PwmOut(unsigned int DutyCycle)
@@ -614,7 +615,7 @@ void ReadVal(volatile const UCHAR* SavedBuf, UINT* pSetA_Volt, UINT* pDutyCycle)
     temp = SavedBuf[1];
     temp = temp << 8;
     *pDutyCycle = temp | ((unsigned int)SavedBuf[0] & 0x00ff);
-	*pDutyCycle = *pDutyCycle + 5;
+//	*pDutyCycle = *pDutyCycle + 5;
 
     temp = 0x0000;
     temp = SavedBuf[3];
@@ -653,14 +654,39 @@ unsigned int GetDutyByCmp(unsigned int duty, unsigned int setVolt,
     long double Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
     long double In_Current;  // 변환된 입력 피드백 전류 값
     long double Offset;
+	long double i;
 	
 	if(CurDayNight == NONE)	Set_Current = 0;
 	else					Set_Current = (long double)(setVolt * Multip[CurDayNight]); 
 	
     In_Current = (((long double)inVolt - 600) / 60) * 1000;  // (635 - 600)/60 * 1000 = 583
-    
-    Offset = 100 - (Set_Current / 20); // 오프셋 값    
-    if(Offset == 0) Offset = 10;
+
+	if (bSetSwPushOK)
+	{
+		if (Set_Current > 1000)
+		{
+			Offset = 0;
+		}
+		else
+		{	
+			Offset = 50 - (Set_Current/40); // 오프셋 값 
+		}
+		if(Offset > 50)	Offset = 50;
+	}
+	else
+	{
+		if (Set_Current > 2000)
+		{
+			Offset = 0;
+		}
+		else
+		{	
+			Offset = 400 - (Set_Current/5); // 오프셋 값 
+		}
+		if(Offset > 400)	Offset = 400;
+	}
+		
+
 
     if (In_Current < Set_Current) // 760 > 583
     {
@@ -672,8 +698,6 @@ unsigned int GetDutyByCmp(unsigned int duty, unsigned int setVolt,
     }
     else if (In_Current > Set_Current)
     {
-// 이 부분 추후 수정 해보자 ! 3/2 로 .... ??
-		Offset = Offset * 2;
         if (In_Current > (Set_Current + Offset))
         {
             if (duty > 0)		duty--;
@@ -784,15 +808,17 @@ void SetAplLamp(tag_CurDay CurDayNight)
 	{
 		bCurA_IN_Upd = FALSE;	
 		DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN, CurDayNight);		
-	}
+	}	
 	PwmOut(DutyCycle);
-	_LAMP_ON = TRUE; // LAMP ON		
+	_LAMP_ON = TRUE; // LAMP ON	
 }
 
 
 void OnOffAplLamp(tag_CurDay CurDayNight)
 {
 	static bit bStEnab;
+	long double li;
+	long double Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
 	
 	if ((IsInLED_ON(_IN_BLINK, &InBlinkTimer)) && (CurDayNight != NONE)) // Blink Led 가 On 일 때
 	{
@@ -801,22 +827,37 @@ void OnOffAplLamp(tag_CurDay CurDayNight)
 			bStEnab = FALSE;
 			StartTimer = 0;
 			ReadVal((arSavedBuf + (CurDayNight*4)), &stApl[CurDayNight].SetA, &DutyCycle);
+
+			Set_Current = (long double)(stApl[CurDayNight].SetA * Multip[CurDayNight]); 
+			if (Set_Current > 1000)
+			{
+				StOnTime = 1;
+				DutyCycle = DutyCycle + 2;
+			}
+			else
+			{
+				StOnTime = (UINT)(400 - (Set_Current / 10));	
+			}	
+			
+			PwmOut(DutyCycle);
+			_LAMP_ON = TRUE; // LAMP ON	
 		}
-		else if (StartTimer >= 100)
+		else if (StartTimer >= StOnTime)
 		{
 			if (bCurA_IN_Upd)
 			{
 				bCurA_IN_Upd = FALSE;
 				DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN, CurDayNight);
 			}
+			PwmOut(DutyCycle);
+			_LAMP_ON = TRUE; // LAMP ON	
 		}
-		PwmOut(DutyCycle);
-		_LAMP_ON = TRUE; // LAMP ON			
+		
 	}
 	else // Blink Led 가 Off 일 때
 	{
 		DutyCycle = 0;		
-		PwmOut(DutyCycle);
+		PwmOut(DutyCycle);	
 		_LAMP_ON = FALSE; // LAMP OFF 
 		bStEnab = TRUE;
 	}

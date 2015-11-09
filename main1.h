@@ -256,6 +256,7 @@ volatile struct TmpStatusBit   TSB;
 
 bit bCurA_IN_Upd;
 
+UINT StOnTime = 0;
 
 
 extern bit IsUdtAd(UINT*, UCHAR*, UCHAR);
