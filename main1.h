@@ -195,6 +195,8 @@ unsigned long int SumAD = 0;
 
 unsigned char 	PERIOD;
 unsigned int 	DutyCycle = 0;
+unsigned int 	DutyCycle_Avr = 0;
+
 #define DUTI_MAX 0x3ff // 1023
 
 

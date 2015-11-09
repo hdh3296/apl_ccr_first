@@ -659,7 +659,7 @@ unsigned int GetDutyByCmp(unsigned int duty, unsigned int setVolt,
 	if(CurDayNight == NONE)	Set_Current = 0;
 	else					Set_Current = (long double)(setVolt * Multip[CurDayNight]); 
 	
-    In_Current = (((long double)inVolt - 600) / 60) * 1000;  // (635 - 600)/60 * 1000 = 583
+    In_Current = (((long double)inVolt - 600) / 60) * 1000;  // (630 - 600)/60 * 1000 = 500 mA
 
 	if (bSetSwPushOK)
 	{
@@ -688,9 +688,9 @@ unsigned int GetDutyByCmp(unsigned int duty, unsigned int setVolt,
 		
 
 
-    if (In_Current < Set_Current) // 760 > 583
+    if (In_Current < Set_Current) 
     {
-        if ((In_Current + Offset) < Set_Current)   // 760 > (583+82)=645
+        if ((In_Current + Offset) < Set_Current)  
         {
             if (duty < DUTI_MAX)	duty++;
             else					duty = DUTI_MAX;
@@ -832,7 +832,7 @@ void OnOffAplLamp(tag_CurDay CurDayNight)
 			if (Set_Current > 1000)
 			{
 				StOnTime = 1;
-				DutyCycle = DutyCycle + 2;
+//				DutyCycle = DutyCycle + 2;
 			}
 			else
 			{
@@ -886,6 +886,8 @@ void StartAplLamp(void)
 void main(void)
 {
 	UCHAR ch;
+	static unsigned long int DtSum = 0;
+	static unsigned int 	 DtCnt = 0;	
 	
     di();
     Initial();
@@ -920,7 +922,7 @@ void main(void)
         if (bSetSw_UpEdge)
         {
             bSetSw_UpEdge = FALSE;
-            WriteVal(DutyCycle, stApl[CurDayNight].SetA, (arSavedBuf + (CurDayNight*4)));
+            WriteVal(DutyCycle_Avr, stApl[CurDayNight].SetA, (arSavedBuf + (CurDayNight*4)));
         }
 
 		// AD 贸府 
@@ -941,7 +943,16 @@ void main(void)
 		// AMP Lamp 免仿 贸府 
 		if (bSetSwPushOK)
 		{
-			SetAplLamp(CurDayNight);		
+			SetAplLamp(CurDayNight);
+			DtSum = DtSum + (unsigned long int)DutyCycle;
+			DtCnt++;
+			if (DtCnt > 30)
+			{
+				DutyCycle_Avr = (unsigned int)(DtSum / DtCnt);
+			
+				DtCnt = 0;	
+				DtSum = 0;
+			}
 		}
 		else
 		{
