@@ -695,17 +695,17 @@ unsigned int GetDutyByCmp(unsigned int duty, unsigned int setVolt,
     In_Current = (((long double)inVolt - 600) / 60) * 1000;  // (630 - 600)/60 * 1000 = 500 mA
 	Offset = GetOffSet(Set_Current);	
 
-    if (In_Current < Set_Current) 
+    if (Set_Current > In_Current) 
     {
-        if ((In_Current + Offset) < Set_Current)  
+        if (Set_Current > (In_Current + Offset))  
         {
             if (duty < DUTI_MAX)	duty++;
             else					duty = DUTI_MAX;
         }
     }
-    else if (In_Current > Set_Current)
+    else if (Set_Current < In_Current)
     {
-        if (In_Current > (Set_Current + Offset))
+        if ((Set_Current + Offset) < In_Current)
         {
             if (duty > 0)		duty--;
         }
