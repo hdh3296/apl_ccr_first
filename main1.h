@@ -190,7 +190,7 @@ unsigned int BeginTimer = 0;
 
 
 unsigned char     AdChSel;
-unsigned long int SumAD = 0;
+
 
 
 unsigned char 	PERIOD;
@@ -220,7 +220,7 @@ const long double Multip[] = {SET_AMP_PER_VOLT1, SET_AMP_PER_VOLT2, SET_AMP_PER_
 
 // 5000이면 5V이다.
 #define ADCH_MAX	5
-unsigned int arInPutAD[ADCH_MAX] = {0,}; // 각 채널에서 읽어드린 AD 값 
+unsigned int arInPut_mV[ADCH_MAX] = {0,}; // 각 채널에서 읽어드린 AD 값 
 UCHAR arIs_AdUpd[5] = {0,};
 
 #define WRSIZE	12
@@ -239,8 +239,7 @@ tag_Apl		stApl[3] = {
 unsigned int CurA_IN;
 unsigned int CurV_IN;
 
-unsigned int	AdCurValue;
-unsigned int	AdCnt;
+
 unsigned int	tmpSetADCnt_1;
 unsigned int	tmpSetADCnt_2;
 unsigned int 	tmpSetADCnt[3] = {0,}; 

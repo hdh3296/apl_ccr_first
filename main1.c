@@ -423,9 +423,6 @@ void  InitAD(void)
     ADIE = 1; // A/D Converter (ADC) Interrupt Enable bit / 1 = Enables the A/D interrupt
     ADIF = 0; // A/D Converter Interrupt Flag bit / 0 = The A/D conversion is not complete
 
-    AdCurValue = 0;
-    AdCnt = 0;
-
     TSB.bAdInterrupt = 0;
     TSB.bAdSave = FALSE;
 
@@ -506,40 +503,40 @@ UCHAR ChangeAdChSel(UCHAR AdSel, tag_CurDay ch)
 
 
 
-bit	IsUdtAd(UINT* arInPutAD, UCHAR* arIs_AdUpd, UCHAR AdChSel)
+bit	IsUdtAd(UINT* arInPut_mV, UCHAR* arIs_AdUpd, UCHAR AdChSel)
 {
-    unsigned long int tmpad;
-    unsigned int 	itmpad;
-	unsigned int	AvrAD;
+	static unsigned long int 	SumAD = 0;
+	static unsigned long int	AdCnt = 0;
+	unsigned long int			AvrAD;
+
+	unsigned int		CurAD;
+    unsigned int 		tmp;	
 	
     if (TSB.bAdInterrupt)
     {
         TSB.bAdInterrupt = FALSE;
 
-        AdCurValue = (unsigned int)ADRESH;
-        AdCurValue = AdCurValue << 8;
-        AdCurValue = (AdCurValue & 0xff00);
-        itmpad = (unsigned int)ADRESL;
-        itmpad = (itmpad & 0x00ff);
-        AdCurValue = (AdCurValue | itmpad);
+		CurAD = 0;
+        CurAD = (unsigned int)(ADRESH & 0x03);
+        CurAD = CurAD << 8;
+        tmp = (unsigned int)ADRESL;
+        tmp = (tmp & 0x00ff);
+        CurAD = (CurAD | tmp);
 
-        SumAD = SumAD + (unsigned long int)AdCurValue;
+        SumAD = SumAD + (unsigned long int)CurAD;
         AdCnt++;
 
         if (AdCnt >= 10)
         {
 			if (SumAD > 0)
 			{
-				tmpad = SumAD / AdCnt;
-				tmpad = (tmpad * 1000) / 192;	//204
-				AvrAD = (unsigned int)tmpad;
+				AvrAD = SumAD / AdCnt;
 			}
 			else
 			{
 				AvrAD = 0;
-			}
-			
-			arInPutAD[AdChSel] = AvrAD;
+			}			
+			arInPut_mV[AdChSel] = (unsigned int)((AvrAD * 1000) / 192); // mV
 			arIs_AdUpd[AdChSel] = TRUE;
 			
             SumAD = 0;
@@ -780,7 +777,7 @@ void GetMyAD(void)
 			case 0:
 			case 1:
 			case 2:	
-				Sum[ch] = Sum[ch] + (unsigned long int)arInPutAD[ch];
+				Sum[ch] = Sum[ch] + (unsigned long int)arInPut_mV[ch];
 				Cnt[ch]++;
 
 				if (Cnt[ch] >= 10)
@@ -791,11 +788,11 @@ void GetMyAD(void)
 				}
 				break;
 			case 3:
-				CurA_IN = arInPutAD[ch];
+				CurA_IN = arInPut_mV[ch];
 				bCurA_IN_Upd = TRUE;
 				break;
 			case 4:
-				CurV_IN = arInPutAD[ch];
+				CurV_IN = arInPut_mV[ch];
 				break;
 			default:
 				break;
@@ -953,7 +950,7 @@ void main(void)
         }
 
 		// AD 처리 
-        if(IsUdtAd(arInPutAD, arIs_AdUpd, AdChSel)) // input AD 값 얻음.
+        if(IsUdtAd(arInPut_mV, arIs_AdUpd, AdChSel)) // input AD 값 얻음.
         {
 			// 각 AD 값이 Updated 이면, 각 관련 변수에 저장 한다. 
 			GetMyAD();
