@@ -1006,7 +1006,6 @@ void interrupt isr(void)
             InDayTimer++;
         if (InNightTimer < 200)
             InNightTimer++;
-
         if (BeginTimer < 1000)
             BeginTimer++;
     }
