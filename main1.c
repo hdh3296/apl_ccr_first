@@ -489,10 +489,7 @@ UCHAR ChangeAdChSel(UCHAR AdSel, tag_CurDay ch)
         AdSel = 3;
         break;
     case 3: // AN3, A_IN
-        AdSel = 4;
-        break;
-    case 4: // AN4, V_IN      
-		AdSel = ch;					
+        AdSel = ch;
         break;
     default:
 		AdSel = 3;		        
@@ -536,7 +533,7 @@ bit	IsUdtAd(UINT* arInPut_mV, UCHAR* arIs_AdUpd, UCHAR AdChSel)
 			{
 				AvrAD = 0;
 			}			
-			arInPut_mV[AdChSel] = (unsigned int)((AvrAD * 1000) / 192); // mV
+			arInPut_mV[AdChSel] = (unsigned int)((AvrAD * 1000) / 310); // 기준 3.3V에서 AD 값을 mV로 환산 !!! 
 			arIs_AdUpd[AdChSel] = TRUE;
 			
             SumAD = 0;
@@ -645,9 +642,9 @@ bit IsSetSw_UpEdge(void)
 }
 
 
-long double GetOffSet(long double Set_Current)
+unsigned long int GetOffSet(unsigned long int Set_Current)
 {
-	long double Offset;
+	unsigned long int Offset;
 	
 	if (bSetSwPushOK)
 	{
@@ -678,18 +675,22 @@ long double GetOffSet(long double Set_Current)
 }
 
 
-unsigned int GetDutyByCmp(unsigned int duty, unsigned int setVolt,
-                                     unsigned int inVolt, unsigned char CurDayNight)
+unsigned int GetDutyByCmp(unsigned int duty, unsigned int set_mV,
+                                     unsigned int in_mV, unsigned char CurDayNight)
 {
-    long double Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
-    long double In_Current;  // 변환된 입력 피드백 전류 값
-    long double Offset;
-	long double i;
+    unsigned long int Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
+    unsigned long int In_Current;  // 변환된 입력 피드백 전류 값
+    unsigned long int Offset;
+	unsigned long int i;
 	
 	if(CurDayNight == NONE)	Set_Current = 0;
-	else					Set_Current = (long double)(setVolt * Multip[CurDayNight]); 
+	else					Set_Current = (unsigned long int)(set_mV * Multip[CurDayNight]); 
 	
-    In_Current = (((long double)inVolt - 600) / 60) * 1000;  // (630 - 600)/60 * 1000 = 500 mA
+    if(in_mV >= 600) 
+		In_Current = (((unsigned long int)in_mV - 600) * 1000) / 60;  // (630 - 600)/60 * 1000 = 500 mA
+	else 
+		In_Current = 0;
+	
 	Offset = GetOffSet(Set_Current);	
 
     if (Set_Current > In_Current) 
@@ -710,9 +711,9 @@ unsigned int GetDutyByCmp(unsigned int duty, unsigned int setVolt,
 
     if (AnalogValidTime > 20)
     {
-        if (setVolt <= A_SET_V_MIN)
+        if (set_mV <= A_SET_V_MIN)
             duty = 0;
-        if (setVolt >= A_SET_V_MAX)
+        if (set_mV >= A_SET_V_MAX)
             duty = DUTI_MAX;
     }
 
@@ -788,8 +789,8 @@ void GetMyAD(void)
 				}
 				break;
 			case 3:
-				CurA_IN = arInPut_mV[ch];
-				bCurA_IN_Upd = TRUE;
+				CurA_IN_mV = arInPut_mV[ch];
+				bCurA_IN_mVUpd = TRUE;
 				break;
 			case 4:
 				CurV_IN = arInPut_mV[ch];
@@ -807,10 +808,10 @@ void GetMyAD(void)
 
 UINT Get_StOnTime(void)
 {
-	long double Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
+	unsigned long int Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
 	static UINT StOnTime = 0;
 	
-	Set_Current = (long double)(stApl[CurDayNight].SetA * Multip[CurDayNight]); 
+	Set_Current = (unsigned long int)(stApl[CurDayNight].SetA * Multip[CurDayNight]); 
 	
 	if (Set_Current > 1000) 
 		StOnTime = 1;
@@ -825,10 +826,10 @@ UINT Get_StOnTime(void)
 // 셋팅 스위치 눌렀을 때 APL 램프 셋팅 
 void SetAplLamp(tag_CurDay CurDayNight)
 {	
-	if (bCurA_IN_Upd)
+	if (bCurA_IN_mVUpd)
 	{
-		bCurA_IN_Upd = FALSE;	
-		DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN, CurDayNight);		
+		bCurA_IN_mVUpd = FALSE;	
+		DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN_mV, CurDayNight);		
 	}	
 	PwmOut(DutyCycle);
 	_LAMP_ON = TRUE; // LAMP ON	
@@ -838,7 +839,6 @@ void SetAplLamp(tag_CurDay CurDayNight)
 void OnOffAplLamp(tag_CurDay CurDayNight)
 {
 	static bit bStEnab;
-	long double li;
 	
 	if ((IsInLED_ON(_IN_BLINK, &InBlinkTimer)) && (CurDayNight != NONE)) // Blink Led 가 On 일 때
 	{
@@ -852,10 +852,10 @@ void OnOffAplLamp(tag_CurDay CurDayNight)
 		}
 		else if (StartTimer >= Get_StOnTime())
 		{
-			if (bCurA_IN_Upd)
+			if (bCurA_IN_mVUpd)
 			{
-				bCurA_IN_Upd = FALSE;
-				DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN, CurDayNight);
+				bCurA_IN_mVUpd = FALSE;
+				DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN_mV, CurDayNight);
 			}
 			PwmOut(DutyCycle);
 			_LAMP_ON = TRUE; // LAMP ON	
@@ -932,7 +932,7 @@ void main(void)
     bSetSwPushOK = FALSE;
     StartTimer = 0;
     bInBlinkLED = FALSE;
-	bCurA_IN_Upd = FALSE;
+	bCurA_IN_mVUpd = FALSE;
 
     while (1)
     {

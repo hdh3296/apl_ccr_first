@@ -1,6 +1,8 @@
 
 typedef	unsigned char	UCHAR;
 typedef unsigned int	UINT;
+typedef unsigned long int	ULINT;
+
 
 
 #define TRIS_INPUT		1
@@ -236,7 +238,7 @@ tag_Apl		stApl[3] = {
 					{0,},	// Set2
 			};
 
-unsigned int CurA_IN;
+unsigned int CurA_IN_mV;
 unsigned int CurV_IN;
 
 
@@ -255,7 +257,7 @@ unsigned char NCFlag					: 5;
 volatile struct TmpStatusBit   TSB;
 
 
-bit bCurA_IN_Upd;
+bit bCurA_IN_mVUpd;
 
 
 
@@ -269,7 +271,7 @@ extern UCHAR ChangeAdChSel(UCHAR, tag_CurDay);
 extern void StartAplLamp(void);
 extern UINT AvrDutyCycle(UINT);
 extern UINT Get_StOnTime(void);
-extern long double GetOffSet(long double);
+extern unsigned long int GetOffSet(unsigned long int);
 
 
 
