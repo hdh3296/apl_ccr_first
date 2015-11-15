@@ -830,7 +830,8 @@ void SetAplLamp(tag_CurDay CurDayNight)
 	if (bCurA_IN_mVUpd)
 	{
 		bCurA_IN_mVUpd = FALSE;	
-		DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN_mV, CurDayNight);		
+		DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN_mV, CurDayNight);
+		DutyCycle_Avr = AvrDutyCycle(DutyCycle); // Q?? 
 	}	
 	PwmOut(DutyCycle);
 	_LAMP_ON = TRUE; // LAMP ON	
@@ -969,7 +970,6 @@ void main(void)
 		if (bSetSwPushOK)
 		{
 			SetAplLamp(CurDayNight);
-			DutyCycle_Avr = AvrDutyCycle(DutyCycle);
 		}
 		else
 		{
