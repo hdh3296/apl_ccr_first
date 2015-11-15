@@ -532,7 +532,8 @@ bit	IsUdtAd(UINT* arInPut_mV, UCHAR* arIs_AdUpd, UCHAR AdChSel)
 			else
 			{
 				AvrAD = 0;
-			}			
+			}
+			//arInPut_mV[AdChSel] = (unsigned int)((AvrAD * 1000) / 192); // 기준 5V에서 AD 값을 mV로 환산 !!! 
 			arInPut_mV[AdChSel] = (unsigned int)((AvrAD * 1000) / 310); // 기준 3.3V에서 AD 값을 mV로 환산 !!! 
 			arIs_AdUpd[AdChSel] = TRUE;
 			
