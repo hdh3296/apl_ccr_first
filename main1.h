@@ -258,7 +258,7 @@ volatile struct TmpStatusBit   TSB;
 
 
 bit bCurA_IN_mVUpd;
-
+UCHAR nADSUM = 0;
 
 
 

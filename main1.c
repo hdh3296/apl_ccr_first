@@ -523,7 +523,10 @@ bit	IsUdtAd(UINT* arInPut_mV, UCHAR* arIs_AdUpd, UCHAR AdChSel)
         SumAD = SumAD + (unsigned long int)CurAD;
         AdCnt++;
 
-        if (AdCnt >= 10)
+		if (bSetSwPushOK) nADSUM = 100;
+		else nADSUM = 10;		
+		
+        if (AdCnt >= nADSUM)
         {
 			if (SumAD > 0)
 			{
@@ -837,10 +840,11 @@ void SetAplLamp(tag_CurDay CurDayNight)
 	_LAMP_ON = TRUE; // LAMP ON	
 }
 
-
 void OnOffAplLamp(tag_CurDay CurDayNight)
 {
 	static bit bStEnab;
+	unsigned long int Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
+	UINT Time = 0;
 	
 	if ((IsInLED_ON(_IN_BLINK, &InBlinkTimer)) && (CurDayNight != NONE)) // Blink Led 가 On 일 때
 	{
@@ -848,14 +852,16 @@ void OnOffAplLamp(tag_CurDay CurDayNight)
 		{
 			bStEnab = FALSE;
 			StartTimer = 0;
+			Set_Current = (unsigned long int)(stApl[CurDayNight].SetA * Multip[CurDayNight]); 
 			ReadVal((arSavedBuf + (CurDayNight*4)), &stApl[CurDayNight].SetA, &DutyCycle);
 			PwmOut(DutyCycle);
-			_LAMP_ON = TRUE; // LAMP ON				
+			_LAMP_ON = TRUE; // LAMP ON
+			Time = Get_StOnTime();
 		}
-		else if (StartTimer >= Get_StOnTime())
+		else if (StartTimer >= Time)
 		{
 			if (bCurA_IN_mVUpd)
-			{
+			{	
 				bCurA_IN_mVUpd = FALSE;
 				DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN_mV, CurDayNight);
 			}
@@ -900,7 +906,7 @@ UINT AvrDutyCycle(UINT DutyCycle)
 	
 	DtSum = DtSum + (unsigned long int)DutyCycle;
 	DtCnt++;
-	if (DtCnt > 10)
+	if (DtCnt > 50)
 	{
 		DutyCycle_Avr = (unsigned int)(DtSum / DtCnt);
 
@@ -954,6 +960,7 @@ void main(void)
 		// AD 처리 
         if(IsUdtAd(arInPut_mV, arIs_AdUpd, AdChSel)) // input AD 값 얻음.
         {
+			_RUNLED = !_RUNLED;
 			// 각 AD 값이 Updated 이면, 각 관련 변수에 저장 한다. 
 			GetMyAD();
 			
@@ -962,7 +969,6 @@ void main(void)
 			if(bSetSwPushOK)	AdChSel = ChangeAdChSel(AdChSel, ch);
 			else				AdChSel = ChangeAdChSel(AdChSel, 3);	
 			Set_AdCh(AdChSel);
-			
 			GODONE = 1;
         }
 		
