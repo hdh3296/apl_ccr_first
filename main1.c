@@ -652,7 +652,7 @@ unsigned long int GetOffSet(unsigned long int Set_Current)
 	
 	if (bSetSwPushOK)
 	{
-		if (Set_Current > 1000)
+		if (Set_Current > 100)
 		{
 			Offset = 0;
 		}
@@ -664,7 +664,7 @@ unsigned long int GetOffSet(unsigned long int Set_Current)
 	}
 	else
 	{
-		if (Set_Current > 2000)
+		if (Set_Current > 100)
 		{
 			Offset = 0;
 		}
@@ -975,11 +975,21 @@ void main(void)
 		// AMP Lamp 출력 처리 
 		if (bSetSwPushOK)
 		{
-			SetAplLamp(CurDayNight);
+			if (bSetSt)
+			{
+				bSetSt = FALSE;
+				SetStTimer = 0;
+				DutyCycle = 0;
+			}
+			else
+			{
+				if(SetStTimer > 1000)	SetAplLamp(CurDayNight);
+			}
 		}
 		else
 		{
-			OnOffAplLamp(CurDayNight);		
+			OnOffAplLamp(CurDayNight);
+			bSetSt = TRUE;
 		}
     }
 }
@@ -1014,6 +1024,8 @@ void interrupt isr(void)
             InNightTimer++;
         if (BeginTimer < 1000)
             BeginTimer++;
+		if (SetStTimer < 0xffff)
+            SetStTimer++;
     }
 
     if (ADIntFlag && ADIE)

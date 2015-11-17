@@ -188,6 +188,7 @@ tag_CurDay	CurDayNight;
 
 
 unsigned int BeginTimer = 0;
+unsigned int SetStTimer = 0;
 
 
 
@@ -259,6 +260,7 @@ volatile struct TmpStatusBit   TSB;
 
 bit bCurA_IN_mVUpd;
 UCHAR nADSUM = 0;
+bit bSetSt= FALSE;
 
 
 
