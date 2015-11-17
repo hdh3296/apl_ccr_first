@@ -524,7 +524,7 @@ bit	IsUdtAd(UINT* arInPut_mV, UCHAR* arIs_AdUpd, UCHAR AdChSel)
         AdCnt++;
 
 		if (bSetSwPushOK) nADSUM = 100;
-		else nADSUM = 10;		
+		else nADSUM = 100;			
 		
         if (AdCnt >= nADSUM)
         {
@@ -536,8 +536,8 @@ bit	IsUdtAd(UINT* arInPut_mV, UCHAR* arIs_AdUpd, UCHAR AdChSel)
 			{
 				AvrAD = 0;
 			}
-			//arInPut_mV[AdChSel] = (unsigned int)((AvrAD * 1000) / 192); // 기준 5V에서 AD 값을 mV로 환산 !!! 
-			arInPut_mV[AdChSel] = (unsigned int)((AvrAD * 1000) / 310); // 기준 3.3V에서 AD 값을 mV로 환산 !!! 
+			//arInPut_mV[AdChSel] = (unsigned int)((AvrAD * 10000) / 2046; // 기준 5V에서 AD 값을 mV로 환산 !!! 
+			arInPut_mV[AdChSel] = (unsigned int)((AvrAD * 10000) / 3127); // 기준 3.3V에서 AD 값을 mV로 환산 !!! 
 			arIs_AdUpd[AdChSel] = TRUE;
 			
             SumAD = 0;
@@ -580,7 +580,7 @@ void InitPwm(void)
 
 	// PR2 및 타이머2 프리스케일러 값이 커질수로 주기는 길어 진다. 
 	PR2 = 0xff; // update the PWM period 주기 레지스터 
-	T2CON = 0x05; // 프리스케일: 4x , 값이 클 수록 주기가 길어진다. 
+	T2CON = 0x04; // 프리스케일: 4x , 값이 클 수록 주기가 길어진다. 
 }
 
 void PwmOut(unsigned int DutyCycle)
@@ -652,7 +652,7 @@ unsigned long int GetOffSet(unsigned long int Set_Current)
 	
 	if (bSetSwPushOK)
 	{
-		if (Set_Current > 100)
+		if (Set_Current > 10)
 		{
 			Offset = 0;
 		}
@@ -664,7 +664,7 @@ unsigned long int GetOffSet(unsigned long int Set_Current)
 	}
 	else
 	{
-		if (Set_Current > 100)
+		if (Set_Current > 10)
 		{
 			Offset = 0;
 		}
@@ -688,10 +688,19 @@ unsigned int GetDutyByCmp(unsigned int duty, unsigned int set_mV,
 	unsigned long int i;
 	
 	if(CurDayNight == NONE)	Set_Current = 0;
-	else					Set_Current = (unsigned long int)(set_mV * Multip[CurDayNight]); 
-	
+	else					Set_Current =(((ULINT)set_mV) * Multip[CurDayNight]); 
+
+	if (bSetSwPushOK == FALSE) 
+	{
+			if (Set_Current < 1000)
+			{
+				if (Set_Current > 50) Set_Current = Set_Current - 50;
+			}
+	}
+		
     if(in_mV >= 600) 
 		In_Current = (((unsigned long int)in_mV - 600) * 1000) / 60;  // (630 - 600)/60 * 1000 = 500 mA
+		//In_Current = (((unsigned long int)in_mV - 500) * 1000) / 133;  // 전류를 전압으로 변환 센서 단위 133mV/1A 짜리로 변경 !!! 
 	else 
 		In_Current = 0;
 	
@@ -699,6 +708,8 @@ unsigned int GetDutyByCmp(unsigned int duty, unsigned int set_mV,
 
     if (Set_Current > In_Current) 
     {
+		if (bSetSwPushOK == FALSE) 
+			if (Set_Current < 1000) Offset = Offset + 50;		
         if (Set_Current > (In_Current + Offset))  
         {
             if (duty < DUTI_MAX)	duty++;
@@ -707,6 +718,8 @@ unsigned int GetDutyByCmp(unsigned int duty, unsigned int set_mV,
     }
     else if (Set_Current < In_Current)
     {
+		if (bSetSwPushOK == FALSE) 
+			if (Set_Current < 1000) Offset = Offset + 50;
         if ((Set_Current + Offset) < In_Current)
         {
             if (duty > 0)		duty--;
@@ -815,7 +828,7 @@ UINT Get_StOnTime(void)
 	unsigned long int Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
 	static UINT StOnTime = 0;
 	
-	Set_Current = (unsigned long int)(stApl[CurDayNight].SetA * Multip[CurDayNight]); 
+	Set_Current = (((ULINT)stApl[CurDayNight].SetA) * Multip[CurDayNight]); 
 	
 	if (Set_Current > 1000) 
 		StOnTime = 1;
@@ -852,7 +865,6 @@ void OnOffAplLamp(tag_CurDay CurDayNight)
 		{
 			bStEnab = FALSE;
 			StartTimer = 0;
-			Set_Current = (unsigned long int)(stApl[CurDayNight].SetA * Multip[CurDayNight]); 
 			ReadVal((arSavedBuf + (CurDayNight*4)), &stApl[CurDayNight].SetA, &DutyCycle);
 			PwmOut(DutyCycle);
 			_LAMP_ON = TRUE; // LAMP ON
@@ -917,6 +929,34 @@ UINT AvrDutyCycle(UINT DutyCycle)
 	return DutyCycle_Avr;
 }
 
+
+
+bit IsFlicker(void)
+{
+	
+	if (_LAMP_ON)
+	{
+		if (LampOnTimer > 5000)
+		{
+			bCurFlicker = FALSE;
+			Level = 1;
+		}
+		else if (LampOnTimer > 10000)
+		{
+			bCurFlicker = FALSE;
+			Level = 2;
+		}
+
+	}
+	else 
+	{
+		LampOnTimer = 0;
+		bCurFlicker = TRUE;
+		Level = 0;
+	}
+}
+
+
 void main(void)
 {
 	UCHAR ch;
@@ -946,7 +986,7 @@ void main(void)
     {
         CLRWDT();
 
-		
+//		IsFlicker();
         CurDayNight = GetDayEveningNight(); // NONE, DAY , EVENING , NIGHT 값 가져온다.
 		bSetSw_UpEdge = IsSetSw_UpEdge(); // 스위치 엣지, bSetSwPushOK 여부 가져온다.
         
@@ -1026,6 +1066,9 @@ void interrupt isr(void)
             BeginTimer++;
 		if (SetStTimer < 0xffff)
             SetStTimer++;
+		if (LampOnTimer < 0xffff)
+            LampOnTimer++;
+		
     }
 
     if (ADIntFlag && ADIE)

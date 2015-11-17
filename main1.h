@@ -209,15 +209,15 @@ unsigned int 	DutyCycle_Avr = 0;
 #define	A_SET_V_MIN 0
 #define A_SET_A_MAX1 10000 // mA
 #define A_SET_A_MIN1 0
-#define SET_AMP_PER_VOLT1	((A_SET_A_MAX1 - A_SET_A_MIN1) / (A_SET_V_MAX - A_SET_V_MIN)) // 4
+#define SET_AMP_PER_VOLT1	(((A_SET_A_MAX1 - A_SET_A_MIN1)) / (A_SET_V_MAX - A_SET_V_MIN)) // 4
 #define A_SET_A_MAX2 10000 // mA
 #define A_SET_A_MIN2 0
-#define SET_AMP_PER_VOLT2	((A_SET_A_MAX2 - A_SET_A_MIN2) / (A_SET_V_MAX - A_SET_V_MIN)) // 4
+#define SET_AMP_PER_VOLT2	(((A_SET_A_MAX2 - A_SET_A_MIN2)) / (A_SET_V_MAX - A_SET_V_MIN)) // 4
 #define A_SET_A_MAX3 10000 // mA
 #define A_SET_A_MIN3 0
-#define SET_AMP_PER_VOLT3	((A_SET_A_MAX3 - A_SET_A_MIN3) / (A_SET_V_MAX - A_SET_V_MIN)) // 4
+#define SET_AMP_PER_VOLT3	(((A_SET_A_MAX3 - A_SET_A_MIN3)) / (A_SET_V_MAX - A_SET_V_MIN)) // 4
 
-const long double Multip[] = {SET_AMP_PER_VOLT1, SET_AMP_PER_VOLT2, SET_AMP_PER_VOLT3}; 
+ULINT Multip[] = {(SET_AMP_PER_VOLT1), (SET_AMP_PER_VOLT2), (SET_AMP_PER_VOLT3)}; 
 
 #define ADIntFlag			ADIF
 
@@ -261,7 +261,9 @@ volatile struct TmpStatusBit   TSB;
 bit bCurA_IN_mVUpd;
 UCHAR nADSUM = 0;
 bit bSetSt= FALSE;
-
+UINT LampOnTimer = 0;
+bit bCurFlicker = FALSE;
+UCHAR Level = 0;
 
 
 extern bit IsUdtAd(UINT*, UCHAR*, UCHAR);
@@ -274,6 +276,7 @@ extern void StartAplLamp(void);
 extern UINT AvrDutyCycle(UINT);
 extern UINT Get_StOnTime(void);
 extern unsigned long int GetOffSet(unsigned long int);
+extern bit IsFlicker(void);
 
 
 
