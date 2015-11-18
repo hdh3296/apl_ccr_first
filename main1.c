@@ -827,7 +827,7 @@ void SetAplLamp(tag_CurDay CurDayNight)
 	{
 		bCurA_IN_mVUpd = FALSE;	
 		DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN_mV, CurDayNight);
-		DutyCycle_Avr = AvrDutyCycle(DutyCycle); // Q?? 
+//		DutyCycle_Avr = AvrDutyCycle(DutyCycle); // Q?? 
 	}	
 	PwmOut(DutyCycle);
 	_LAMP_ON = TRUE; // LAMP ON	
@@ -900,7 +900,7 @@ UINT AvrDutyCycle(UINT DutyCycle)
 	
 	DtSum = DtSum + (unsigned long int)DutyCycle;
 	DtCnt++;
-	if (DtCnt > 50)
+	if (DtCnt > 10)
 	{
 		DutyCycle_Avr = (unsigned int)(DtSum / DtCnt);
 
@@ -989,7 +989,8 @@ void main(void)
         if (bSetSw_UpEdge)
         {
             bSetSw_UpEdge = FALSE;
-            WriteVal(DutyCycle_Avr, stApl[CurDayNight].SetA, (arSavedBuf + (CurDayNight*4)));
+//			WriteVal(DutyCycle_Avr, stApl[CurDayNight].SetA, (arSavedBuf + (CurDayNight*4)));
+            WriteVal(DutyCycle, stApl[CurDayNight].SetA, (arSavedBuf + (CurDayNight*4)));
         }
 
 		// AD Ã³¸® 
