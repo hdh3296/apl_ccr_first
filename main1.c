@@ -679,17 +679,11 @@ unsigned long int GetOffSet(unsigned long int Set_Current)
 	return Offset;
 }
 
-ULONG Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
-ULONG In_Current;  // 변환된 입력 피드백 전류 값
 unsigned int GetDutyByCmp(unsigned int duty, unsigned int set_mV,
                                      unsigned int Out_mV, unsigned char CurDayNight)
 {
-
     ULONG Offset;
 	ULONG i;
-	
-	if(CurDayNight == NONE)	Set_Current = 0;
-	else					Set_Current = ((((ULONG)set_mV) * Multip[CurDayNight]) / 1000); 
 
     if(Out_mV >= 600) 
 		In_Current = (((unsigned long int)Out_mV - 600) * 1000) / 60;  // (630 - 600)/60 * 1000 = 500 mA 
@@ -814,10 +808,7 @@ void GetMyAD(void)
 
 UINT GetLamp_OnTime(void)
 {
-	ULONG Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
 	static UINT StOnTime = 0;
-	
-	Set_Current = ((((ULONG)stApl[CurDayNight].SetA) * Multip[CurDayNight]) / 1000); 
 	
 	if (Set_Current > 1000) 
 		StOnTime = 1;
@@ -845,7 +836,6 @@ void SetAplLamp(tag_CurDay CurDayNight)
 void OnOffAplLamp(tag_CurDay CurDayNight)
 {
 	static bit bStEnab;
-	unsigned long int Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
 	UINT Time = 0;
 	
 	if ((IsInLED_ON(_IN_BLINK, &InBlinkTimer)) && (CurDayNight != NONE)) // Blink Led 가 On 일 때
@@ -865,12 +855,14 @@ void OnOffAplLamp(tag_CurDay CurDayNight)
 			if (bCurA_IN_mVUpd)
 			{	
 				bCurA_IN_mVUpd = FALSE;
-				//DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN_mV, CurDayNight);
+				if (Set_Current > 1000)
+				{
+					DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN_mV, CurDayNight);
+				}
 			}
 			PwmOut(DutyCycle);
 			_LAMP_ON = TRUE; // LAMP ON	
-		}
-		
+		}		
 	}
 	else // Blink Led 가 Off 일 때
 	{
@@ -946,6 +938,18 @@ bit IsFlicker(void)
 	}
 }
 
+ULONG GetSetCurrent(unsigned int set_mV, unsigned char CurDayNight)
+{
+	ULONG Set_Current;
+	
+	if(CurDayNight == NONE) Set_Current = 0;
+	else					Set_Current = ((((ULONG)set_mV) * Multip[CurDayNight]) / 1000); 
+
+	return Set_Current;
+}
+
+
+
 
 void main(void)
 {
@@ -965,6 +969,7 @@ void main(void)
     SWDTEN = 1;  // Software Controlled Watchdog Timer Enable bit / 1 = Watchdog Timer is on
 
 	StartAplLamp();
+	Set_Current = GetSetCurrent(stApl[CurDayNight].SetA, CurDayNight);
 
     bSetSw_UpEdge = FALSE;
     bSetSwPushOK = FALSE;
@@ -1013,7 +1018,11 @@ void main(void)
 			}
 			else
 			{
-				if(SetStTimer > 1000)	SetAplLamp(CurDayNight);
+				if(SetStTimer > 1000)
+				{
+					Set_Current = GetSetCurrent(stApl[CurDayNight].SetA, CurDayNight);
+					SetAplLamp(CurDayNight);
+				}
 			}
 		}
 		else

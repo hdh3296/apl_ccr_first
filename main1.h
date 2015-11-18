@@ -265,6 +265,9 @@ UINT LampOnTimer = 0;
 bit bCurFlicker = FALSE;
 UCHAR Level = 0;
 
+ULONG Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
+ULONG In_Current;  // 변환된 입력 피드백 전류 값
+
 
 extern bit IsUdtAd(UINT*, UCHAR*, UCHAR);
 extern void SetAplLamp(tag_CurDay);
@@ -277,6 +280,8 @@ extern UINT AvrDutyCycle(UINT);
 extern UINT GetLamp_OnTime(void);
 extern unsigned long int GetOffSet(unsigned long int);
 extern bit IsFlicker(void);
+extern ULONG GetSetCurrent(unsigned int set_mV, unsigned char CurDayNight);
+
 
 
 
