@@ -524,7 +524,7 @@ bit	IsUdtAd(UINT* arInPut_mV, UCHAR* arIs_AdUpd, UCHAR AdChSel)
         AdCnt++;
 
 		if (bSetSwPushOK) nADSUM = 100;
-		else nADSUM = 100;			
+		else nADSUM = 10;			
 		
         if (AdCnt >= nADSUM)
         {
@@ -809,12 +809,14 @@ void GetMyAD(void)
 UINT GetLamp_OnTime(void)
 {
 	static UINT StOnTime = 0;
-	
-	if (Set_Current > 1000) 
+/*	
+	if (Set_Current > JUNG_GIJUN) 
 		StOnTime = 1;
 	else					
 		StOnTime = (UINT)(400 - (Set_Current / 10));	
-
+*/
+	StOnTime = 0;
+	
 	return StOnTime;
 }
 
@@ -847,6 +849,7 @@ void OnOffAplLamp(tag_CurDay CurDayNight)
 			ReadVal((arSavedBuf + (CurDayNight*4)), &stApl[CurDayNight].SetA, &DutyCycle);
 			PwmOut(DutyCycle);
 			_LAMP_ON = TRUE; // LAMP ON
+			DutyCycle_X0 = DutyCycle;
 			
 			Time = GetLamp_OnTime();
 		}
@@ -855,7 +858,7 @@ void OnOffAplLamp(tag_CurDay CurDayNight)
 			if (bCurA_IN_mVUpd)
 			{	
 				bCurA_IN_mVUpd = FALSE;
-				if (Set_Current > 1000)
+				if (Set_Current > JUNG_GIJUN)
 				{
 					DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN_mV, CurDayNight);
 				}
@@ -866,7 +869,8 @@ void OnOffAplLamp(tag_CurDay CurDayNight)
 	}
 	else // Blink Led ∞° Off ¿œ ∂ß
 	{
-		DutyCycle = 0;		
+		DutyCycle = DutyCycle_X0;
+		DutyCycle = ((DutyCycle * 3) / 100);		
 		PwmOut(DutyCycle);	
 		_LAMP_ON = FALSE; // LAMP OFF 
 		bStEnab = TRUE;
@@ -970,6 +974,7 @@ void main(void)
 
 	StartAplLamp();
 	Set_Current = GetSetCurrent(stApl[CurDayNight].SetA, CurDayNight);
+	DutyCycle_X0 = DutyCycle;
 
     bSetSw_UpEdge = FALSE;
     bSetSwPushOK = FALSE;

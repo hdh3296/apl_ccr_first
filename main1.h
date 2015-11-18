@@ -198,14 +198,17 @@ unsigned char     AdChSel;
 
 unsigned char 	PERIOD;
 unsigned int 	DutyCycle = 0;
+unsigned int 	DutyCycle_X0 = 0;
+
 unsigned int 	DutyCycle_Avr = 0;
 
 #define DUTI_MAX 0x3ff // 1023
 
 
+#define JUNG_GIJUN 2000
 
 
-#define	A_SET_V_MAX 5000 // mV
+#define	A_SET_V_MAX 3300 // mV
 #define	A_SET_V_MIN 0
 #define A_SET_A_MAX1 10000 // mA
 #define A_SET_A_MIN1 0
@@ -267,6 +270,7 @@ UCHAR Level = 0;
 
 ULONG Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
 ULONG In_Current;  // 변환된 입력 피드백 전류 값
+
 
 
 extern bit IsUdtAd(UINT*, UCHAR*, UCHAR);
