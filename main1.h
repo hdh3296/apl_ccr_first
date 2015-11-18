@@ -265,6 +265,11 @@ bit bCurA_IN_mVUpd;
 UCHAR nADSUM = 0;
 bit bSetSt= FALSE;
 UINT LampOnTimer = 0;
+UINT OnUjiTimer = 0;
+bit bStEnab = FALSE;
+
+
+bit bSetCurrentDown = FALSE;
 bit bCurFlicker = FALSE;
 UCHAR Level = 0;
 

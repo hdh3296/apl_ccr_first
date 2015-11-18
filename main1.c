@@ -523,7 +523,7 @@ bit	IsUdtAd(UINT* arInPut_mV, UCHAR* arIs_AdUpd, UCHAR AdChSel)
         SumAD = SumAD + (unsigned long int)CurAD;
         AdCnt++;
 
-		if (bSetSwPushOK) nADSUM = 100;
+		if (bSetSwPushOK) nADSUM = 20;
 		else nADSUM = 10;			
 		
         if (AdCnt >= nADSUM)
@@ -824,7 +824,7 @@ UINT GetLamp_OnTime(void)
 
 // 셋팅 스위치 눌렀을 때 APL 램프 셋팅 
 void SetAplLamp(tag_CurDay CurDayNight)
-{	
+{
 	if (bCurA_IN_mVUpd)
 	{
 		bCurA_IN_mVUpd = FALSE;	
@@ -837,7 +837,6 @@ void SetAplLamp(tag_CurDay CurDayNight)
 
 void OnOffAplLamp(tag_CurDay CurDayNight)
 {
-	static bit bStEnab;
 	UINT Time = 0;
 	
 	if ((IsInLED_ON(_IN_BLINK, &InBlinkTimer)) && (CurDayNight != NONE)) // Blink Led 가 On 일 때
@@ -852,20 +851,34 @@ void OnOffAplLamp(tag_CurDay CurDayNight)
 			DutyCycle_X0 = DutyCycle;
 			
 			Time = GetLamp_OnTime();
+
+			OnUjiTimer = 0;	
+			
+
+			Set_Current = GetSetCurrent(stApl[CurDayNight].SetA, CurDayNight);
+			bSetCurrentDown = FALSE;	
 		}
-		else if (StartTimer >= Time)
+		else
 		{
-			if (bCurA_IN_mVUpd)
-			{	
-				bCurA_IN_mVUpd = FALSE;
-				if (Set_Current > JUNG_GIJUN)
-				{
-					DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN_mV, CurDayNight);
+			if (StartTimer >= Time)
+			{
+				if (bCurA_IN_mVUpd)
+				{	
+					bCurA_IN_mVUpd = FALSE;
+					if (Set_Current > (JUNG_GIJUN + 2000))
+					{
+						if ( (OnUjiTimer > 10000) && (bSetCurrentDown == FALSE) )
+						{
+							bSetCurrentDown = TRUE;
+							Set_Current = Set_Current - 70;
+						}
+						DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN_mV, CurDayNight);
+					}
 				}
+				PwmOut(DutyCycle);
+				_LAMP_ON = TRUE; // LAMP ON	
 			}
-			PwmOut(DutyCycle);
-			_LAMP_ON = TRUE; // LAMP ON	
-		}		
+		}
 	}
 	else // Blink Led 가 Off 일 때
 	{
@@ -873,7 +886,7 @@ void OnOffAplLamp(tag_CurDay CurDayNight)
 		DutyCycle = ((DutyCycle * 3) / 100);		
 		PwmOut(DutyCycle);	
 		_LAMP_ON = FALSE; // LAMP OFF 
-		bStEnab = TRUE;
+		bStEnab = TRUE;		
 	}
 }
 
@@ -986,6 +999,17 @@ void main(void)
     {
         CLRWDT();
 
+		if (Set_Current > JUNG_GIJUN)
+		{
+			if(T2CON != 0x04) 
+				T2CON = 0x04; // 2000천 간델라 일 떄 !
+		}
+		else
+		{
+			if(T2CON != 0x06) 
+				T2CON = 0x06; // 2000천 간델라 일 떄 !
+		}
+
 //		IsFlicker();
         CurDayNight = GetDayEveningNight(); // NONE, DAY , EVENING , NIGHT 값 가져온다.
 		bSetSw_UpEdge = IsSetSw_UpEdge(); // 스위치 엣지, bSetSwPushOK 여부 가져온다.
@@ -1030,6 +1054,7 @@ void main(void)
 					SetAplLamp(CurDayNight);
 				}
 			}
+			bStEnab = TRUE;
 		}
 		else
 		{
@@ -1073,6 +1098,9 @@ void interrupt isr(void)
             SetStTimer++;
 		if (LampOnTimer < 0xffff)
             LampOnTimer++;
+		if (OnUjiTimer < 0xffff)
+            OnUjiTimer++;		
+		
 		
     }
 
