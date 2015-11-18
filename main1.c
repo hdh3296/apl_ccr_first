@@ -580,7 +580,8 @@ void InitPwm(void)
 
 	// PR2 및 타이머2 프리스케일러 값이 커질수로 주기는 길어 진다. 
 	PR2 = 0xff; // update the PWM period 주기 레지스터 
-	T2CON = 0x04; // 프리스케일: 4x , 값이 클 수록 주기가 길어진다. 
+	//T2CON = 0x04; // 프리스케일: 4x , 값이 클 수록 주기가 길어진다.
+	T2CON = 0x06; // 2000천 간델라 일 떄 !
 }
 
 void PwmOut(unsigned int DutyCycle)
@@ -678,38 +679,28 @@ unsigned long int GetOffSet(unsigned long int Set_Current)
 	return Offset;
 }
 
-
+ULONG Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
+ULONG In_Current;  // 변환된 입력 피드백 전류 값
 unsigned int GetDutyByCmp(unsigned int duty, unsigned int set_mV,
-                                     unsigned int in_mV, unsigned char CurDayNight)
+                                     unsigned int Out_mV, unsigned char CurDayNight)
 {
-    unsigned long int Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
-    unsigned long int In_Current;  // 변환된 입력 피드백 전류 값
-    unsigned long int Offset;
-	unsigned long int i;
+
+    ULONG Offset;
+	ULONG i;
 	
 	if(CurDayNight == NONE)	Set_Current = 0;
-	else					Set_Current =(((ULINT)set_mV) * Multip[CurDayNight]); 
+	else					Set_Current = ((((ULONG)set_mV) * Multip[CurDayNight]) / 1000); 
 
-	if (bSetSwPushOK == FALSE) 
-	{
-			if (Set_Current < 1000)
-			{
-				if (Set_Current > 50) Set_Current = Set_Current - 50;
-			}
-	}
-		
-    if(in_mV >= 600) 
-		In_Current = (((unsigned long int)in_mV - 600) * 1000) / 60;  // (630 - 600)/60 * 1000 = 500 mA
-		//In_Current = (((unsigned long int)in_mV - 500) * 1000) / 133;  // 전류를 전압으로 변환 센서 단위 133mV/1A 짜리로 변경 !!! 
+    if(Out_mV >= 600) 
+		In_Current = (((unsigned long int)Out_mV - 600) * 1000) / 60;  // (630 - 600)/60 * 1000 = 500 mA 
 	else 
 		In_Current = 0;
 	
-	Offset = GetOffSet(Set_Current);	
+//	Offset = GetOffSet(Set_Current);	
+	Offset = 0;
 
     if (Set_Current > In_Current) 
-    {
-		if (bSetSwPushOK == FALSE) 
-			if (Set_Current < 1000) Offset = Offset + 50;		
+    {		
         if (Set_Current > (In_Current + Offset))  
         {
             if (duty < DUTI_MAX)	duty++;
@@ -718,8 +709,6 @@ unsigned int GetDutyByCmp(unsigned int duty, unsigned int set_mV,
     }
     else if (Set_Current < In_Current)
     {
-		if (bSetSwPushOK == FALSE) 
-			if (Set_Current < 1000) Offset = Offset + 50;
         if ((Set_Current + Offset) < In_Current)
         {
             if (duty > 0)		duty--;
@@ -823,12 +812,12 @@ void GetMyAD(void)
 	}	
 }
 
-UINT Get_StOnTime(void)
+UINT GetLamp_OnTime(void)
 {
-	unsigned long int Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
+	ULONG Set_Current; // 변환된 볼륨에의한 셋팅 전류 값
 	static UINT StOnTime = 0;
 	
-	Set_Current = (((ULINT)stApl[CurDayNight].SetA) * Multip[CurDayNight]); 
+	Set_Current = ((((ULONG)stApl[CurDayNight].SetA) * Multip[CurDayNight]) / 1000); 
 	
 	if (Set_Current > 1000) 
 		StOnTime = 1;
@@ -868,14 +857,15 @@ void OnOffAplLamp(tag_CurDay CurDayNight)
 			ReadVal((arSavedBuf + (CurDayNight*4)), &stApl[CurDayNight].SetA, &DutyCycle);
 			PwmOut(DutyCycle);
 			_LAMP_ON = TRUE; // LAMP ON
-			Time = Get_StOnTime();
+			
+			Time = GetLamp_OnTime();
 		}
 		else if (StartTimer >= Time)
 		{
 			if (bCurA_IN_mVUpd)
 			{	
 				bCurA_IN_mVUpd = FALSE;
-				DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN_mV, CurDayNight);
+				//DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN_mV, CurDayNight);
 			}
 			PwmOut(DutyCycle);
 			_LAMP_ON = TRUE; // LAMP ON	

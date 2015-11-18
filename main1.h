@@ -1,7 +1,7 @@
 
 typedef	unsigned char	UCHAR;
 typedef unsigned int	UINT;
-typedef unsigned long int	ULINT;
+typedef unsigned long 	ULONG;
 
 
 
@@ -209,15 +209,15 @@ unsigned int 	DutyCycle_Avr = 0;
 #define	A_SET_V_MIN 0
 #define A_SET_A_MAX1 10000 // mA
 #define A_SET_A_MIN1 0
-#define SET_AMP_PER_VOLT1	(((A_SET_A_MAX1 - A_SET_A_MIN1)) / (A_SET_V_MAX - A_SET_V_MIN)) // 4
+#define SET_AMP_PER_VOLT1	(((ULONG)(A_SET_A_MAX1 - A_SET_A_MIN1) * (ULONG)1000) / (ULONG)(A_SET_V_MAX - A_SET_V_MIN)) // 4
 #define A_SET_A_MAX2 10000 // mA
 #define A_SET_A_MIN2 0
-#define SET_AMP_PER_VOLT2	(((A_SET_A_MAX2 - A_SET_A_MIN2)) / (A_SET_V_MAX - A_SET_V_MIN)) // 4
-#define A_SET_A_MAX3 10000 // mA
+#define SET_AMP_PER_VOLT2	(((ULONG)(A_SET_A_MAX2 - A_SET_A_MIN2) * (ULONG)1000) / (ULONG)(A_SET_V_MAX - A_SET_V_MIN)) // 4
+#define A_SET_A_MAX3 2000 // mA
 #define A_SET_A_MIN3 0
-#define SET_AMP_PER_VOLT3	(((A_SET_A_MAX3 - A_SET_A_MIN3)) / (A_SET_V_MAX - A_SET_V_MIN)) // 4
+#define SET_AMP_PER_VOLT3	(((ULONG)(A_SET_A_MAX3 - A_SET_A_MIN3) * (ULONG)1000) / (ULONG)(A_SET_V_MAX - A_SET_V_MIN)) // 4
 
-ULINT Multip[] = {(SET_AMP_PER_VOLT1), (SET_AMP_PER_VOLT2), (SET_AMP_PER_VOLT3)}; 
+ULONG Multip[] = {(SET_AMP_PER_VOLT1), (SET_AMP_PER_VOLT2), (SET_AMP_PER_VOLT3)}; 
 
 #define ADIntFlag			ADIF
 
@@ -274,7 +274,7 @@ extern void Set_AdCh(UCHAR);
 extern UCHAR ChangeAdChSel(UCHAR, tag_CurDay);
 extern void StartAplLamp(void);
 extern UINT AvrDutyCycle(UINT);
-extern UINT Get_StOnTime(void);
+extern UINT GetLamp_OnTime(void);
 extern unsigned long int GetOffSet(unsigned long int);
 extern bit IsFlicker(void);
 
