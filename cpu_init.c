@@ -32,7 +32,7 @@ void    Init_Comms(void)
 
 
 
-void  Timer0Init(void)
+void  InitTimer0(void)
 {
   TMR0IE=1;
   TMR0IF=0;

@@ -106,7 +106,7 @@ extern  void	USART0_TXC(void);
 /*
 extern  void    Initial();
 extern  void    Init_Comms();
-extern  void    Timer0Init();
+extern  void    InitTimer0();
 */
 
 
@@ -166,19 +166,18 @@ unsigned       int        Mes;
 ////////////////////////////////
 unsigned int indayHighTimer = 0;
 unsigned int AnalogValidTime = 0;
-unsigned int StartTimer;
+unsigned int StartTimer = 0;
 
 unsigned char InBlinkTimer = 0;
 unsigned char InDayTimer = 0;
 unsigned char InNightTimer = 0;
 
 
-bit bInBlinkLED;
 
 #define SETSW_PUSH		0 // 스위치 눌렀을 때가 0 값이다.
 unsigned    char    SetSwCharterTimer = 0;
-bit bSetSwPushOK;
-bit bSetSw_UpEdge;
+bit bSetSwPushOK = FALSE;
+bit bSetSw_UpEdge = FALSE;
 
 #define ON	1
 #define	OFF	0
@@ -198,7 +197,7 @@ unsigned char     AdChSel;
 
 unsigned char 	PERIOD;
 unsigned int 	DutyCycle = 0;
-unsigned int 	DutyCycle_X0 = 0;
+unsigned int 	SetDutyCycle = 0;
 
 unsigned int 	DutyCycle_Avr = 0;
 
@@ -219,7 +218,6 @@ unsigned int 	DutyCycle_Avr = 0;
 #define A_SET_A_MAX3 2000 // mA
 #define A_SET_A_MIN3 0
 #define SET_AMP_PER_VOLT3	(((ULONG)(A_SET_A_MAX3 - A_SET_A_MIN3) * (ULONG)1000) / (ULONG)(A_SET_V_MAX - A_SET_V_MIN)) // 4
-
 ULONG Multip[] = {(SET_AMP_PER_VOLT1), (SET_AMP_PER_VOLT2), (SET_AMP_PER_VOLT3)}; 
 
 #define ADIntFlag			ADIF
@@ -227,7 +225,7 @@ ULONG Multip[] = {(SET_AMP_PER_VOLT1), (SET_AMP_PER_VOLT2), (SET_AMP_PER_VOLT3)}
 // 5000이면 5V이다.
 #define ADCH_MAX	5
 unsigned int arInPut_mV[ADCH_MAX] = {0,}; // 각 채널에서 읽어드린 AD 값 
-UCHAR arIs_AdUpd[5] = {0,};
+UCHAR arIs_AdUpd[ADCH_MAX] = {0,};
 
 #define WRSIZE	12
 volatile const unsigned char  arSavedBuf[WRSIZE] = {0, };
@@ -261,7 +259,7 @@ unsigned char NCFlag					: 5;
 volatile struct TmpStatusBit   TSB;
 
 
-bit bCurA_IN_mVUpd;
+bit bCurA_IN_mVUpd = FALSE;
 UCHAR nADSUM = 0;
 bit bSetSt= FALSE;
 UINT LampOnTimer = 0;
@@ -284,13 +282,14 @@ extern void OnOffAplLamp(tag_CurDay);
 extern void GetMyAD(void);
 extern void Set_AdCh(UCHAR);
 extern UCHAR ChangeAdChSel(UCHAR, tag_CurDay);
-extern void StartAplLamp(void);
+extern void PwOnAplLamp(void);
 extern UINT AvrDutyCycle(UINT);
 extern UINT GetLamp_OnTime(void);
 extern unsigned long int GetOffSet(unsigned long int);
 extern bit IsFlicker(void);
 extern ULONG GetSetCurrent(unsigned int set_mV, unsigned char CurDayNight);
-
+extern unsigned int GetDutyByCmp(unsigned int duty, unsigned int set_mV,
+                                     unsigned int Out_mV, unsigned char CurDayNight);
 
 
 

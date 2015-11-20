@@ -482,7 +482,7 @@ UCHAR ChangeAdChSel(UCHAR AdSel, tag_CurDay ch)
     case 0: // AN0, 撤 
         AdSel = 3;
         break;
-    case 1: // AN1, 历宠 
+    case 1: // AN1, 历宠 老 
         AdSel = 3;
         break;
     case 2: // AN2, 广 
@@ -545,7 +545,7 @@ bit	IsUdtAd(UINT* arInPut_mV, UCHAR* arIs_AdUpd, UCHAR AdChSel)
 			return TRUE;
         }
 		
-        GODONE = 1;	//AD (Because.....Auto GODONE = 0)
+        GODONE = 1;	//AD (Because.....Auto GODONE = 0) 
     }
 	return FALSE;
 }
@@ -615,7 +615,6 @@ void ReadVal(volatile const UCHAR* SavedBuf, UINT* pSetA_Volt, UINT* pDutyCycle)
     temp = SavedBuf[1];
     temp = temp << 8;
     *pDutyCycle = temp | ((unsigned int)SavedBuf[0] & 0x00ff);
-//	*pDutyCycle = *pDutyCycle + 5;
 
     temp = 0x0000;
     temp = SavedBuf[3];
@@ -848,12 +847,11 @@ void OnOffAplLamp(tag_CurDay CurDayNight)
 			ReadVal((arSavedBuf + (CurDayNight*4)), &stApl[CurDayNight].SetA, &DutyCycle);
 			PwmOut(DutyCycle);
 			_LAMP_ON = TRUE; // LAMP ON
-			DutyCycle_X0 = DutyCycle;
+			SetDutyCycle = DutyCycle;
 			
 			Time = GetLamp_OnTime();
 
 			OnUjiTimer = 0;	
-			
 
 			Set_Current = GetSetCurrent(stApl[CurDayNight].SetA, CurDayNight);
 			bSetCurrentDown = FALSE;	
@@ -865,13 +863,14 @@ void OnOffAplLamp(tag_CurDay CurDayNight)
 				if (bCurA_IN_mVUpd)
 				{	
 					bCurA_IN_mVUpd = FALSE;
-					if (Set_Current > (JUNG_GIJUN + 2000))
+					if (Set_Current > JUNG_GIJUN) 
 					{
-						if ( (OnUjiTimer > 10000) && (bSetCurrentDown == FALSE) )
+						if ((Set_Current > (JUNG_GIJUN + 2000)) && (OnUjiTimer > 10000) && (bSetCurrentDown == FALSE))
 						{
 							bSetCurrentDown = TRUE;
 							Set_Current = Set_Current - 70;
 						}
+						
 						DutyCycle = GetDutyByCmp(DutyCycle, stApl[CurDayNight].SetA, CurA_IN_mV, CurDayNight);
 					}
 				}
@@ -882,7 +881,7 @@ void OnOffAplLamp(tag_CurDay CurDayNight)
 	}
 	else // Blink Led 啊 Off 老 锭
 	{
-		DutyCycle = DutyCycle_X0;
+		DutyCycle = SetDutyCycle;
 		DutyCycle = ((DutyCycle * 3) / 100);		
 		PwmOut(DutyCycle);	
 		_LAMP_ON = FALSE; // LAMP OFF 
@@ -892,7 +891,7 @@ void OnOffAplLamp(tag_CurDay CurDayNight)
 
 
 
-void StartAplLamp(void)
+void PwOnAplLamp(void)
 {	
     do
     {
@@ -902,8 +901,8 @@ void StartAplLamp(void)
 		else
 			ReadVal((arSavedBuf + (CurDayNight*4)), &stApl[CurDayNight].SetA, &DutyCycle);
 
-        _LAMP_ON = TRUE;
         PwmOut(DutyCycle);
+		_LAMP_ON = TRUE;
         CLRWDT();
     }
     while (BeginTimer < 100);
@@ -975,8 +974,8 @@ void main(void)
 	
     di();
     Initial();
-    Timer0Init();
-    InitPort();
+	InitPort();
+    InitTimer0();
     InitAD();
     InitPwm();
     ei();
@@ -985,15 +984,9 @@ void main(void)
     TMR0IE = 1;
     SWDTEN = 1;  // Software Controlled Watchdog Timer Enable bit / 1 = Watchdog Timer is on
 
-	StartAplLamp();
+	PwOnAplLamp();
 	Set_Current = GetSetCurrent(stApl[CurDayNight].SetA, CurDayNight);
-	DutyCycle_X0 = DutyCycle;
-
-    bSetSw_UpEdge = FALSE;
-    bSetSwPushOK = FALSE;
-    StartTimer = 0;
-    bInBlinkLED = FALSE;
-	bCurA_IN_mVUpd = FALSE;
+	SetDutyCycle = DutyCycle;
 
     while (1)
     {
@@ -1083,7 +1076,7 @@ void interrupt isr(void)
         if (AnalogValidTime < 200)
             AnalogValidTime++;
 
-        if (StartTimer < 1000)
+        if (StartTimer < 0xffff)
             StartTimer++;
 
         if (InBlinkTimer < 200)

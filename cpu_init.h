@@ -2,7 +2,7 @@
 
 extern  void    Initial(void);
 extern  void    Init_Comms(void);
-extern  void    Timer0Init(void);
+extern  void    InitTimer0(void);
 
 
 extern  void    Initialx(void);
