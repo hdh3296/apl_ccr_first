@@ -183,7 +183,7 @@ bit bSetSw_UpEdge = FALSE;
 #define	OFF	0
 
 typedef enum{DAY = 0, EVENING = 1, NIGHT = 2, NONE = 100} tag_CurDay;
-tag_CurDay	CurDayNight;
+tag_CurDay	CurDayNight = 100, BefCurDayNight = 100;
 
 
 unsigned int BeginTimer = 0;
@@ -209,10 +209,10 @@ unsigned int 	DutyCycle_Avr = 0;
 
 #define	A_SET_V_MAX 3300 // mV
 #define	A_SET_V_MIN 0
-#define A_SET_A_MAX1 10000 // mA
+#define A_SET_A_MAX1 30000 // mA
 #define A_SET_A_MIN1 0
 #define SET_AMP_PER_VOLT1	(((ULONG)(A_SET_A_MAX1 - A_SET_A_MIN1) * (ULONG)1000) / (ULONG)(A_SET_V_MAX - A_SET_V_MIN)) // 4
-#define A_SET_A_MAX2 10000 // mA
+#define A_SET_A_MAX2 20000 // mA
 #define A_SET_A_MIN2 0
 #define SET_AMP_PER_VOLT2	(((ULONG)(A_SET_A_MAX2 - A_SET_A_MIN2) * (ULONG)1000) / (ULONG)(A_SET_V_MAX - A_SET_V_MIN)) // 4
 #define A_SET_A_MAX3 2000 // mA

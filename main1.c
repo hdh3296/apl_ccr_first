@@ -895,7 +895,7 @@ void PwOnAplLamp(void)
 {	
     do
     {
-        CurDayNight = GetDayEveningNight(); // NONE, DAY , EVENING , NIGHT 값 저장
+        BefCurDayNight = CurDayNight = GetDayEveningNight(); // NONE, DAY , EVENING , NIGHT 값 저장
         if (CurDayNight == NONE)
             DutyCycle = 0x0;
 		else
@@ -1005,6 +1005,12 @@ void main(void)
 
 //		IsFlicker();
         CurDayNight = GetDayEveningNight(); // NONE, DAY , EVENING , NIGHT 값 가져온다.
+		// 낮, 밤이 바뀔 때 처리 
+		if (CurDayNight != BefCurDayNight)
+		{
+			BefCurDayNight = CurDayNight;
+			bStEnab = TRUE;
+		}        
 		bSetSw_UpEdge = IsSetSw_UpEdge(); // 스위치 엣지, bSetSwPushOK 여부 가져온다.
         
         // 셋업 스위치 누르고 뗐을 때 ! 현재 DutyCycle, SetA값 저장 !
