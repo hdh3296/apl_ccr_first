@@ -880,17 +880,13 @@ unsigned char GetDayEveningNight(void)
 	static bit bDayLed, bNightLed;
 	unsigned char ret;
 	
-	bDayLed = IsInLED_ON(_IN_DAY, &InDayTimer);
+	//bDayLed = IsInLED_ON(_IN_DAY, &InDayTimer);
 	bNightLed = IsInLED_ON(_IN_NIGHT, &InNightTimer);
 
-	if(bDayLed && (bNightLed == FALSE)) // ³· 
-		ret = DAY;
-	else if(bDayLed && bNightLed) // Àú³è 
-		ret = EVENING;
-	else if((bDayLed == FALSE) && bNightLed) // ¹ã	
+	if(bNightLed) // ¹ã	
 		ret = NIGHT;
 	else
-		ret = NONE;
+		ret = DAY;
 
 	return ret;
 		
